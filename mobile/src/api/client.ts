@@ -19,7 +19,7 @@ export const DEFAULT_TIMEOUT_MS = 20_000;
 export const IMPORT_TIMEOUT_MS = 60_000;
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string | null;
   timeoutMs?: number;
