@@ -72,6 +72,9 @@ export type MonthTotal = { month: string; total: number; receiptCount: number };
 export type SpendingInsight = {
   currentMonth: MonthTotal;
   previousMonth: MonthTotal;
+  /** Previous month from day 1 to comparedUntilDay: the base of changePercent */
+  previousMonthToDate: MonthTotal;
+  comparedUntilDay: number;
   changePercent: number | null;
   monthly: MonthTotal[];
   byStore: { storeId: number; storeName: string; total: number; receiptCount: number }[];
