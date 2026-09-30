@@ -13,7 +13,7 @@
 | Auth         | Spring Security + JWT (stateless)                           |
 | API docs     | springdoc-openapi (Swagger UI)                              |
 | Tests        | JUnit 5, AssertJ, Testcontainers (PostgreSQL)               |
-| Mobile       | React Native + Expo + TypeScript (Expo Router, expo-camera) |
+| Mobile       | React Native + Expo SDK 58 + TypeScript (Expo Router, expo-camera); Node 22.13+ |
 | Charts       | victory-native (mobile dashboards)                          |
 | Server state | TanStack Query                                              |
 | Local infra  | Docker Compose                                              |

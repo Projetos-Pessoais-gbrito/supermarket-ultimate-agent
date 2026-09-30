@@ -6,7 +6,7 @@
 |------|-----|
 | [Docker Desktop](https://www.docker.com/products/docker-desktop/) running | PostgreSQL database |
 | JDK 21 (e.g. [Temurin 21](https://adoptium.net/temurin/releases/?version=21)) | Backend |
-| Node.js 20 or 22 | Mobile dev server |
+| Node.js 22.13+ or 24 LTS (Expo SDK 58 requirement) | Mobile dev server |
 | **Expo Go** app on the phone (Play Store / App Store), updated | Runs the app |
 | `.env` in the repository root with `JWT_SECRET` (copy `.env.example`) | Login tokens |
 
@@ -62,7 +62,7 @@ No receipt at hand? Paste the link of a receipt QR code in **Ou cole o link do Q
 | Message / symptom | Fix |
 |-------------------|-----|
 | "Sem conexão com o servidor…" | Backend not running, firewall blocking port 8080, or phone on another network (guest Wi-Fi, mobile data). Check that **Conta → Servidor** shows your computer's Wi-Fi address (not `172.x`). |
-| Expo Go says the project is incompatible | Update Expo Go: it only supports the latest SDK (57). |
+| Expo Go says the project is incompatible | The app uses Expo SDK 58. Update Expo Go from the store; while SDK 58 is in beta, install it with `npx expo start` → press `a` (Android) or use `eas go` (iOS). |
 | Phone can't reach even the dev server | Some routers isolate devices. Use `npm start -- --tunnel`, and expose the backend too (e.g. `ngrok http 8080`), then start with `EXPO_PUBLIC_API_URL=https://<ngrok-url> npm start -- --tunnel`. |
 | "Não foi possível ler essa nota na SEFAZ…" | Only São Paulo receipts are supported for now. |
 | "A SEFAZ não está respondendo…" | SEFAZ-SP is down or slow; try again later. |
