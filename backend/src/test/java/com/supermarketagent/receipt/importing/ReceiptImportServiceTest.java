@@ -97,8 +97,8 @@ class ReceiptImportServiceTest {
 
         assertThat(count("receipts")).isEqualTo(2);
         assertThat(count("stores")).isEqualTo(1);
-        // 10 lines, one product bought twice
-        assertThat(count("store_products")).isEqualTo(9);
+        // 10 lines, two products bought twice each
+        assertThat(count("store_products")).isEqualTo(8);
     }
 
     @Test
