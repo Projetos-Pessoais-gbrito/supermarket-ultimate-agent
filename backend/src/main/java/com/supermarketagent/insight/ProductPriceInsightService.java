@@ -25,7 +25,7 @@ public class ProductPriceInsightService {
     public List<ProductSummary> products(long userId, int limit) {
         return jdbc.query("""
                 WITH bought AS (
-                    SELECT p.id, p.normalized_name, p.category, i.unit_price, r.issued_at,
+                    SELECT p.id, COALESCE(p.display_name, p.normalized_name) AS name, p.category, i.unit_price, r.issued_at,
                            row_number() OVER (PARTITION BY p.id ORDER BY r.issued_at DESC, i.id DESC) AS recency
                     FROM receipts r
                     JOIN receipt_items i ON i.receipt_id = r.id
@@ -33,17 +33,17 @@ public class ProductPriceInsightService {
                     JOIN products p ON p.id = sp.product_id
                     WHERE r.user_id = ?
                 )
-                SELECT id, normalized_name, category, count(*) AS times_bought,
+                SELECT id, name, category, count(*) AS times_bought,
                        max(unit_price) FILTER (WHERE recency = 1) AS last_price,
                        min(unit_price) AS min_price, max(unit_price) AS max_price,
                        round(avg(unit_price), 2) AS avg_price, max(issued_at) AS last_bought
                 FROM bought
-                GROUP BY id, normalized_name, category
+                GROUP BY id, name, category
                 ORDER BY times_bought DESC, last_bought DESC
                 LIMIT ?""",
                 (rs, row) -> new ProductSummary(
                         rs.getLong("id"),
-                        rs.getString("normalized_name"),
+                        rs.getString("name"),
                         label(rs.getString("category")),
                         rs.getInt("times_bought"),
                         rs.getBigDecimal("last_price"),
@@ -70,7 +70,8 @@ public class ProductPriceInsightService {
         if (prices.isEmpty()) {
             return Optional.empty();
         }
-        String name = jdbc.queryForObject("SELECT normalized_name FROM products WHERE id = ?", String.class, productId);
+        String name = jdbc.queryForObject(
+                "SELECT COALESCE(display_name, normalized_name) FROM products WHERE id = ?", String.class, productId);
         return Optional.of(new PriceHistory(productId, name, prices));
     }
 
