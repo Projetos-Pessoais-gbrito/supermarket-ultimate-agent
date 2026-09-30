@@ -33,6 +33,9 @@ function ReceiptContent({ receipt }: { receipt: ReceiptDetails }) {
     <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <Text style={styles.store}>{receipt.store.name}</Text>
+        {receipt.store.legalName !== receipt.store.name && (
+          <Text style={styles.muted}>{receipt.store.legalName}</Text>
+        )}
         <Text style={styles.muted}>{receipt.store.address}</Text>
         <Text style={styles.muted}>{formatDateTime(receipt.issuedAt)}</Text>
       </View>

@@ -43,7 +43,8 @@ export type ReceiptDetails = {
   number: number;
   series: number;
   issuedAt: string;
-  store: { id: number; cnpj: string; name: string; address: string };
+  /** name is the brand (e.g. ASSAI); legalName is what SEFAZ prints (e.g. SENDAS DISTRIBUIDORA S/A) */
+  store: { id: number; cnpj: string; name: string; legalName: string; address: string };
   totalAmount: number;
   discountAmount: number;
   approximateTaxes: number;
