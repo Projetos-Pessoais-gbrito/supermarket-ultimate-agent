@@ -3,6 +3,7 @@ package com.supermarketagent.auth;
 import com.supermarketagent.user.User;
 import java.time.Clock;
 import java.time.Instant;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -18,6 +19,7 @@ public class TokenService {
     private final JwtProperties properties;
     private final Clock clock;
 
+    @Autowired
     TokenService(JwtEncoder encoder, JwtProperties properties) {
         this(encoder, properties, Clock.systemUTC());
     }
