@@ -50,6 +50,22 @@ class AccessKeyTest {
     }
 
     @Test
+    void rejectsKeyWithWrongCheckDigit() {
+        String tampered = NFCE_KEY.substring(0, 43) + "7";
+
+        assertThatThrownBy(() -> new AccessKey(tampered))
+                .isInstanceOf(InvalidAccessKeyException.class)
+                .hasMessageContaining("check digit");
+    }
+
+    @Test
+    void checkDigitIsZeroWhenRemainderIsBelowTwo() {
+        // weighted sums leaving remainder 0 and 1 respectively
+        assertThat(AccessKey.computeCheckDigit("3526011122233300018165001000012345112345606")).isZero();
+        assertThat(AccessKey.computeCheckDigit("3526011122233300018165001000012345112345601")).isZero();
+    }
+
+    @Test
     void rejectsKeyWithWrongLength() {
         assertThatThrownBy(() -> new AccessKey(NFCE_KEY + "0"))
                 .isInstanceOf(InvalidAccessKeyException.class);
