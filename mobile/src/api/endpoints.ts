@@ -1,14 +1,17 @@
 import { apiRequest, apiRequestWithStatus, IMPORT_TIMEOUT_MS } from './client';
 import type {
   BestDayInsight,
+  BudgetCategoryOption,
+  BudgetSettings,
+  BudgetStatus,
   CategoryProducts,
   InflationInsight,
   InsightSummary,
   PriceHistory,
   Me,
-  Page,
   ReceiptDetails,
-  ReceiptSummary,
+  ReceiptFilters,
+  ReceiptListPage,
   SavingsInsight,
   SpendingInsight,
   TokenResponse,
@@ -58,10 +61,32 @@ export const receiptsApi = {
       token,
       timeoutMs: IMPORT_TIMEOUT_MS,
     }).then(toImportResult),
-  list: (token: string, page = 0, size = 20) =>
-    apiRequest<Page<ReceiptSummary>>(`/api/receipts?page=${page}&size=${size}`, { token }),
+  list: (token: string, page = 0, size = 20, filters: ReceiptFilters = {}) =>
+    apiRequest<ReceiptListPage>(`/api/receipts?${receiptListQuery(page, size, filters)}`, { token }),
   details: (token: string, id: number) => apiRequest<ReceiptDetails>(`/api/receipts/${id}`, { token }),
   remove: (token: string, id: number) => apiRequest<void>(`/api/receipts/${id}`, { method: 'DELETE', token }),
+};
+
+/** Query string for the receipt list; empty filters are left out. */
+export function receiptListQuery(page: number, size: number, filters: ReceiptFilters): string {
+  const params = [`page=${page}`, `size=${size}`];
+  for (const key of ['store', 'month', 'q'] as const) {
+    const value = filters[key]?.trim();
+    if (value) {
+      params.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  }
+  return params.join('&');
+}
+
+export type BudgetUpdate = { overall: number | null; categories: { category: string; limit: number }[] };
+
+export const budgetApi = {
+  settings: (token: string) => apiRequest<BudgetSettings>('/api/budget', { token }),
+  categories: (token: string) => apiRequest<BudgetCategoryOption[]>('/api/budget/categories', { token }),
+  save: (token: string, update: BudgetUpdate) =>
+    apiRequest<BudgetSettings>('/api/budget', { method: 'PUT', body: update, token }),
+  status: (token: string) => apiRequest<BudgetStatus>('/api/insights/budget', { token }),
 };
 
 export const insightsApi = {

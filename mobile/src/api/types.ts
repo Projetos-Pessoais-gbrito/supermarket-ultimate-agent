@@ -139,3 +139,43 @@ export type CategoryProducts = {
     lastBoughtAt: string;
   }[];
 };
+
+export type MonthlyTotal = { month: string; total: number; receiptCount: number };
+
+/** GET /api/receipts: a page plus totals per month of everything the filters matched. */
+export type ReceiptListPage = Page<ReceiptSummary> & {
+  monthlyTotals: MonthlyTotal[];
+  /** Filter options, taken from all of the user's receipts */
+  stores: string[];
+  months: string[];
+};
+
+export type ReceiptFilters = { store?: string; month?: string; q?: string };
+
+export type BudgetCategoryLimit = { category: string; label: string; limit: number };
+
+export type BudgetSettings = { overall: number | null; categories: BudgetCategoryLimit[] };
+
+export type BudgetCategoryOption = { category: string; label: string };
+
+export type BudgetState = 'OK' | 'WARNING' | 'OVER';
+
+export type BudgetLine = {
+  category: string | null;
+  label: string;
+  limit: number;
+  spent: number;
+  percentUsed: number;
+  /** Spending at the current pace by the end of the month */
+  projected: number;
+  projectedOver: boolean;
+  state: BudgetState;
+};
+
+export type BudgetStatus = {
+  month: string;
+  daysElapsed: number;
+  daysInMonth: number;
+  overall: BudgetLine | null;
+  categories: BudgetLine[];
+};
