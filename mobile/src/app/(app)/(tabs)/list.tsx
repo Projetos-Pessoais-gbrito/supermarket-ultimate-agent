@@ -1,0 +1,303 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { ApiError } from '../../../api/client';
+import { errorMessage } from '../../../api/messages';
+import type { PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../../../api/shopping';
+import { formatCurrency } from '../../../format';
+import {
+  useAddToList,
+  useClearChecked,
+  usePriceAlerts,
+  useRemoveItem,
+  useShoppingList,
+  useShoppingSuggestions,
+  useToggleItem,
+} from '../../../shopping/queries';
+import {
+  alertHeadline,
+  formatListQuantity,
+  suggestionBestPrice,
+  suggestionRhythm,
+} from '../../../shopping/text';
+import { Button, ErrorBanner, TextField } from '../../../ui/components';
+import { colors, spacing } from '../../../ui/theme';
+
+/** The user's shopping list, what is probably running out, and notable price changes. */
+export default function ShoppingListScreen() {
+  const list = useShoppingList();
+  const suggestions = useShoppingSuggestions();
+  const alerts = usePriceAlerts();
+  const refreshing = list.isRefetching || suggestions.isRefetching || alerts.isRefetching;
+
+  const refresh = () => {
+    list.refetch();
+    suggestions.refetch();
+    alerts.refetch();
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+      <MyList items={list.data} error={list.error} loading={list.isPending} />
+      <Suggestions items={suggestions.data?.items} error={suggestions.error} loading={suggestions.isPending} />
+      <Alerts items={alerts.data?.items} error={alerts.error} loading={alerts.isPending} />
+    </ScrollView>
+  );
+}
+
+function listErrorMessage(error: unknown): string {
+  if (error instanceof ApiError && error.status === 400) {
+    return 'Escreva o nome do item (até 200 letras).';
+  }
+  if (error instanceof ApiError && error.status === 404) {
+    return 'Esse item não está mais na lista. Puxe para atualizar.';
+  }
+  return errorMessage(error);
+}
+
+function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: Error | null; loading: boolean }) {
+  const [name, setName] = useState('');
+  const add = useAddToList();
+  const toggle = useToggleItem();
+  const remove = useRemoveItem();
+  const clearChecked = useClearChecked();
+  const mutationError = add.error ?? toggle.error ?? remove.error ?? clearChecked.error;
+  const hasChecked = items?.some(item => item.checked) ?? false;
+
+  const submit = () => {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      return;
+    }
+    add.mutate({ name: trimmed }, { onSuccess: () => setName('') });
+  };
+
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Minha lista</Text>
+      <ErrorBanner message={error ? errorMessage(error) : mutationError ? listErrorMessage(mutationError) : null} />
+      <TextField
+        label="Adicionar item"
+        placeholder="Ex.: pão, detergente"
+        value={name}
+        onChangeText={setName}
+        onSubmitEditing={submit}
+        returnKeyType="done"
+        maxLength={200}
+      />
+      <Button title="Adicionar" onPress={submit} loading={add.isPending} disabled={!name.trim()} />
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : items && items.length > 0 ? (
+        <View style={styles.card}>
+          {items.map(item => (
+            <ListRow
+              key={item.id}
+              item={item}
+              onToggle={() => toggle.mutate({ id: item.id, checked: !item.checked })}
+              onRemove={() => remove.mutate(item.id)}
+            />
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.muted}>Sua lista está vazia. Adicione itens ou use as sugestões abaixo.</Text>
+      )}
+      {hasChecked && (
+        <Button
+          title="Limpar comprados"
+          variant="secondary"
+          onPress={() => clearChecked.mutate()}
+          loading={clearChecked.isPending}
+        />
+      )}
+    </View>
+  );
+}
+
+function ListRow({ item, onToggle, onRemove }: { item: ShoppingListItem; onToggle: () => void; onRemove: () => void }) {
+  const router = useRouter();
+  const productId = item.productId;
+  const quantity = formatListQuantity(item.quantity);
+  return (
+    <View style={styles.listRow}>
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: item.checked }}
+        accessibilityLabel={item.name}
+        hitSlop={8}
+        onPress={onToggle}>
+        <Ionicons
+          name={item.checked ? 'checkbox' : 'square-outline'}
+          size={24}
+          color={item.checked ? colors.primary : colors.textMuted}
+        />
+      </Pressable>
+      <Pressable
+        style={styles.rowMain}
+        disabled={productId === null}
+        onPress={() =>
+          productId !== null && router.push({ pathname: '/products/[id]', params: { id: String(productId) } })
+        }>
+        <Text style={[styles.itemName, item.checked && styles.itemChecked]} numberOfLines={2}>
+          {quantity ? `${quantity} ` : ''}
+          {item.name}
+        </Text>
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${item.name}`} hitSlop={8} onPress={onRemove}>
+        <Ionicons name="close" size={20} color={colors.textMuted} />
+      </Pressable>
+    </View>
+  );
+}
+
+function Suggestions({
+  items,
+  error,
+  loading,
+}: {
+  items?: ShoppingSuggestion[];
+  error: Error | null;
+  loading: boolean;
+}) {
+  const router = useRouter();
+  const add = useAddToList();
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Está na hora de comprar</Text>
+      <Text style={styles.muted}>Produtos que você compra com frequência e que já devem estar acabando.</Text>
+      <ErrorBanner message={error ? errorMessage(error) : add.error ? listErrorMessage(add.error) : null} />
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : items && items.length > 0 ? (
+        items.map(suggestion => {
+          const best = suggestionBestPrice(suggestion);
+          const adding = add.isPending && add.variables && 'productId' in add.variables
+            && add.variables.productId === suggestion.productId;
+          return (
+            <Pressable
+              key={suggestion.productId}
+              accessibilityRole="button"
+              onPress={() =>
+                router.push({ pathname: '/products/[id]', params: { id: String(suggestion.productId) } })
+              }
+              style={({ pressed }) => [styles.card, styles.suggestion, pressed && styles.pressed]}>
+              <View style={styles.rowMain}>
+                <Text style={styles.itemName} numberOfLines={2}>
+                  {suggestion.name}
+                </Text>
+                <Text style={styles.meta}>{suggestionRhythm(suggestion)}</Text>
+                <Text style={styles.meta}>
+                  Último preço: {formatCurrency(suggestion.lastPrice)} · costuma levar{' '}
+                  {formatListQuantity(suggestion.usualQuantity)}
+                </Text>
+                {best && <Text style={styles.highlight}>{best}</Text>}
+              </View>
+              {suggestion.inList ? (
+                <Text style={styles.inList}>Na lista</Text>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Adicionar ${suggestion.name} à lista`}
+                  hitSlop={8}
+                  disabled={!!adding}
+                  onPress={() =>
+                    add.mutate({ productId: suggestion.productId, quantity: suggestion.usualQuantity })
+                  }>
+                  {adding ? (
+                    <ActivityIndicator color={colors.primary} />
+                  ) : (
+                    <Ionicons name="add-circle-outline" size={28} color={colors.primary} />
+                  )}
+                </Pressable>
+              )}
+            </Pressable>
+          );
+        })
+      ) : (
+        !error && (
+          <Text style={styles.muted}>
+            Nada por enquanto. As sugestões aparecem quando você já comprou um produto em pelo menos duas idas ao
+            mercado.
+          </Text>
+        )
+      )}
+    </View>
+  );
+}
+
+function Alerts({ items, error, loading }: { items?: PriceAlert[]; error: Error | null; loading: boolean }) {
+  const router = useRouter();
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Alertas de preço</Text>
+      <Text style={styles.muted}>Sua última compra comparada com o que você costuma pagar.</Text>
+      <ErrorBanner message={error ? errorMessage(error) : null} />
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : items && items.length > 0 ? (
+        items.map(alert => (
+          <Pressable
+            key={alert.productId}
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/products/[id]', params: { id: String(alert.productId) } })}
+            style={({ pressed }) => [styles.card, styles.suggestion, pressed && styles.pressed]}>
+            <Ionicons
+              name={alert.type === 'DEAL' ? 'trending-down' : 'trending-up'}
+              size={24}
+              color={alert.type === 'DEAL' ? colors.primary : colors.danger}
+            />
+            <View style={styles.rowMain}>
+              <Text style={styles.itemName} numberOfLines={2}>
+                {alert.name}
+              </Text>
+              <Text style={[styles.meta, { color: alert.type === 'DEAL' ? colors.primary : colors.danger }]}>
+                {alertHeadline(alert)}
+              </Text>
+              <Text style={styles.meta}>
+                Pagou {formatCurrency(alert.latestPrice)} em {alert.store}
+              </Text>
+            </View>
+          </Pressable>
+        ))
+      ) : (
+        !error && <Text style={styles.muted}>Nenhuma mudança de preço importante nas suas últimas compras.</Text>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  content: { padding: spacing.md, gap: spacing.lg },
+  section: { gap: spacing.sm },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
+  muted: { fontSize: 14, color: colors.textMuted },
+  card: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+  },
+  suggestion: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
+  pressed: { opacity: 0.7 },
+  listRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  rowMain: { flex: 1, gap: 2 },
+  itemName: { fontSize: 16, fontWeight: '600', color: colors.text },
+  itemChecked: { textDecorationLine: 'line-through', color: colors.textMuted, fontWeight: '400' },
+  meta: { fontSize: 13, color: colors.textMuted },
+  highlight: { fontSize: 13, fontWeight: '600', color: colors.primary },
+  inList: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+});
