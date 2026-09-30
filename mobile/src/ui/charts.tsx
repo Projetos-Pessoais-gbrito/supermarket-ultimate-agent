@@ -69,12 +69,14 @@ export function ColumnChart({ data, highlightKey, formatValue, height = 140 }: C
 type BarListProps = {
   items: ChartDatum[];
   formatValue: (value: number) => string;
+  /** Makes rows tappable (except the folded "Outros" row). */
+  onPressItem?: (key: string) => void;
   /** Rows shown before folding the rest into "Outros". */
   maxRows?: number;
 };
 
 /** Ranked horizontal bars with the value written as text, one hue, largest first. */
-export function BarList({ items, formatValue, maxRows = 5 }: BarListProps) {
+export function BarList({ items, formatValue, onPressItem, maxRows = 5 }: BarListProps) {
   const sorted = [...items].sort((a, b) => b.value - a.value);
   const rows =
     sorted.length > maxRows
@@ -91,23 +93,32 @@ export function BarList({ items, formatValue, maxRows = 5 }: BarListProps) {
 
   return (
     <View style={styles.list}>
-      {rows.map(row => (
-        <View
-          key={row.key}
-          accessible
-          accessibilityLabel={`${row.label}: ${formatValue(row.value)}`}
-          style={styles.listRow}>
-          <View style={styles.listText}>
-            <Text style={styles.listLabel} numberOfLines={1}>
-              {row.label}
-            </Text>
-            <Text style={styles.listValue}>{formatValue(row.value)}</Text>
-          </View>
-          <View style={styles.track}>
-            <View style={[styles.bar, { width: `${max > 0 ? (row.value / max) * 100 : 0}%` }]} />
-          </View>
-        </View>
-      ))}
+      {rows.map(row => {
+        const pressable = onPressItem !== undefined && row.key !== 'others';
+        return (
+          <Pressable
+            key={row.key}
+            disabled={!pressable}
+            onPress={() => onPressItem?.(row.key)}
+            accessibilityRole={pressable ? 'button' : undefined}
+            accessibilityLabel={`${row.label}: ${formatValue(row.value)}`}
+            accessibilityHint={pressable ? 'Mostra os produtos' : undefined}
+            style={({ pressed }) => [styles.listRow, pressed && styles.listRowPressed]}>
+            <View style={styles.listText}>
+              <Text style={styles.listLabel} numberOfLines={1}>
+                {row.label}
+              </Text>
+              <Text style={styles.listValue}>
+                {formatValue(row.value)}
+                {pressable ? '  ›' : ''}
+              </Text>
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.bar, { width: `${max > 0 ? (row.value / max) * 100 : 0}%` }]} />
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -129,6 +140,7 @@ const styles = StyleSheet.create({
   axisLabelStrong: { color: colors.text, fontWeight: '600' },
   list: { gap: spacing.md },
   listRow: { gap: spacing.xs },
+  listRowPressed: { opacity: 0.6 },
   listText: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   listLabel: { flex: 1, fontSize: 14, color: colors.text },
   listValue: { fontSize: 14, color: colors.text, fontWeight: '600' },

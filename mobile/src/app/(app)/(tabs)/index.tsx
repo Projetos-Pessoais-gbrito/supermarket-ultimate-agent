@@ -64,10 +64,11 @@ export default function DashboardScreen() {
                   formatValue={formatCurrency}
                 />
               </Card>
-              <Card title="Por categoria" subtitle="Últimos 6 meses">
+              <Card title="Por categoria" subtitle="Últimos 6 meses · toque para ver os produtos">
                 <BarList
                   items={spending.data.byCategory.map(c => ({ key: c.category ?? 'none', label: c.label, value: c.total }))}
                   formatValue={formatCurrency}
+                  onPressItem={category => router.push({ pathname: '/categories/[category]', params: { category } })}
                 />
               </Card>
               <Card title="Por mercado" subtitle="Últimos 6 meses">
