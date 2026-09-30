@@ -19,18 +19,16 @@ export default function RootLayout() {
   );
 }
 
-/** Signs the user out whenever the backend says the token is no longer valid. */
+/**
+ * A 401 means the access token expired: renew it once and retry the failed queries. If the
+ * session itself is over, refresh() signs the user out.
+ */
 function QueryProvider({ children }: { children: ReactNode }) {
-  const { signOut } = useAuth();
+  const { refresh } = useAuth();
   const [queryClient] = useState(() => {
-    const onError = (error: unknown) => {
-      if (error instanceof ApiError && error.status === 401) {
-        void signOut();
-      }
-    };
-    return new QueryClient({
-      queryCache: new QueryCache({ onError }),
-      mutationCache: new MutationCache({ onError }),
+    const client: QueryClient = new QueryClient({
+      queryCache: new QueryCache({ onError: error => void renewAfter401(error) }),
+      mutationCache: new MutationCache({ onError: error => void renewAfter401(error) }),
       defaultOptions: {
         queries: {
           staleTime: 30_000,
@@ -38,6 +36,12 @@ function QueryProvider({ children }: { children: ReactNode }) {
         },
       },
     });
+    async function renewAfter401(error: unknown) {
+      if (error instanceof ApiError && error.status === 401 && (await refresh())) {
+        await client.invalidateQueries();
+      }
+    }
+    return client;
   });
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
