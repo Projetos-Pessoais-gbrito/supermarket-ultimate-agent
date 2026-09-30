@@ -58,8 +58,8 @@ export default function AccountScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>Seus dados</Text>
         <Text style={styles.text}>
-          Baixe tudo o que o app guarda sobre você: sua conta e todas as notas fiscais com itens e pagamentos,
-          em um arquivo JSON.
+          Baixe tudo o que o app guarda sobre você: sua conta, as notas fiscais com itens e pagamentos, sua
+          lista de compras e seus orçamentos, em um arquivo JSON.
         </Text>
         {exportData.error && <ErrorBanner message={exportErrorMessage(exportData.error)} />}
         <Button title="Exportar meus dados" onPress={() => exportData.mutate()} loading={exportData.isPending} />
