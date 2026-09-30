@@ -1,4 +1,4 @@
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/messages';
@@ -40,20 +40,23 @@ export default function ReceiptListScreen() {
 }
 
 function ReceiptRow({ receipt }: { receipt: ReceiptSummary }) {
+  const router = useRouter();
+  // A plain Pressable: wrapping it in <Link asChild> dropped the style function (card layout lost)
   return (
-    <Link href={`/receipts/${receipt.id}`} asChild>
-      <Pressable accessibilityRole="button" style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
-        <View style={styles.rowMain}>
-          <Text style={styles.store} numberOfLines={1}>
-            {receipt.storeName}
-          </Text>
-          <Text style={styles.meta}>
-            {formatDateTime(receipt.issuedAt)} · {receipt.itemCount} {receipt.itemCount === 1 ? 'item' : 'itens'}
-          </Text>
-        </View>
-        <Text style={styles.total}>{formatCurrency(receipt.totalAmount)}</Text>
-      </Pressable>
-    </Link>
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push({ pathname: '/receipts/[id]', params: { id: String(receipt.id) } })}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
+      <View style={styles.rowMain}>
+        <Text style={styles.store} numberOfLines={1}>
+          {receipt.storeName}
+        </Text>
+        <Text style={styles.meta}>
+          {formatDateTime(receipt.issuedAt)} · {receipt.itemCount} {receipt.itemCount === 1 ? 'item' : 'itens'}
+        </Text>
+      </View>
+      <Text style={styles.total}>{formatCurrency(receipt.totalAmount)}</Text>
+    </Pressable>
   );
 }
 
