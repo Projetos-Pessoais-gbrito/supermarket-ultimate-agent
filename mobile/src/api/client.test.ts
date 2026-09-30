@@ -111,3 +111,9 @@ describe('timeouts', () => {
     expect(errorMessage(new ApiError(0, undefined, 'TIMEOUT'))).toContain('demorou demais');
   });
 });
+
+describe('rate limiting', () => {
+  it('asks the user to wait after too many attempts', () => {
+    expect(errorMessage(new ApiError(429))).toBe('Muitas tentativas. Tente de novo em alguns minutos.');
+  });
+});

@@ -1,10 +1,13 @@
 package com.supermarketagent.shared.web;
 
 import com.supermarketagent.auth.InvalidRefreshTokenException;
+import com.supermarketagent.auth.TooManyAttemptsException;
 import com.supermarketagent.user.EmailAlreadyRegisteredException;
 import com.supermarketagent.user.WrongPasswordException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -17,6 +20,15 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(EmailAlreadyRegisteredException.class)
     ProblemDetail emailAlreadyRegistered(EmailAlreadyRegisteredException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, e.getMessage());
+    }
+
+    @ExceptionHandler(TooManyAttemptsException.class)
+    ResponseEntity<ProblemDetail> tooManyAttempts(TooManyAttemptsException e) {
+        long seconds = Math.max(1, (e.retryAfter().toMillis() + 999) / 1000);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+                .body(ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS,
+                        "Too many attempts, try again in " + seconds + " seconds"));
     }
 
     @ExceptionHandler(InvalidRefreshTokenException.class)

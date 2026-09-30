@@ -37,6 +37,12 @@ app:
       api-key: ${GEMINI_API_KEY:}
       model: gemini-flash-lite-latest
   security:
+    # Brute-force protection per instance, in memory (ADR 0006)
+    login-attempts:
+      max-failures-per-email: 5
+      max-failures-per-ip: 20
+      max-registrations-per-ip: 10
+      window: 15m
     jwt:
       secret: ${JWT_SECRET:}
       access-token-ttl: 1h

@@ -61,22 +61,25 @@ export function ErrorBanner({ message }: { message: string | null }) {
 }
 
 const styles = StyleSheet.create({
+  // minHeight (not height) and vertical padding let buttons grow with the system font size
   button: {
     minHeight: 48,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   buttonPrimary: { backgroundColor: colors.primary },
   buttonSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
   buttonDanger: { backgroundColor: colors.danger },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.background, fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.background, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   field: { marginBottom: spacing.md },
   label: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.xs },
   input: {
     minHeight: 48,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
