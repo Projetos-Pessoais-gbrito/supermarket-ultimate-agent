@@ -2,30 +2,34 @@ import { useQuery } from '@tanstack/react-query';
 
 import { insightsApi } from '../api/endpoints';
 import { useToken } from '../auth/AuthProvider';
+import { bestDayWindowDays, type Period } from './period';
 
 export const insightKeys = {
   all: ['insights'] as const,
-  spending: () => [...insightKeys.all, 'spending'] as const,
-  savings: () => [...insightKeys.all, 'savings'] as const,
-  bestDay: () => [...insightKeys.all, 'best-day'] as const,
+  spending: (period: Period) => [...insightKeys.all, 'spending', period] as const,
+  savings: (period: Period) => [...insightKeys.all, 'savings', period] as const,
+  bestDay: (period: Period) => [...insightKeys.all, 'best-day', period] as const,
   inflation: () => [...insightKeys.all, 'inflation'] as const,
   summary: () => [...insightKeys.all, 'summary'] as const,
-  category: (category: string) => [...insightKeys.all, 'category', category] as const,
+  category: (category: string, period: Period) => [...insightKeys.all, 'category', category, period] as const,
 };
 
-export function useSpending() {
+export function useSpending(period: Period) {
   const token = useToken();
-  return useQuery({ queryKey: insightKeys.spending(), queryFn: () => insightsApi.spending(token) });
+  return useQuery({ queryKey: insightKeys.spending(period), queryFn: () => insightsApi.spending(token, period) });
 }
 
-export function useSavings() {
+export function useSavings(period: Period) {
   const token = useToken();
-  return useQuery({ queryKey: insightKeys.savings(), queryFn: () => insightsApi.savings(token) });
+  return useQuery({ queryKey: insightKeys.savings(period), queryFn: () => insightsApi.savings(token, period) });
 }
 
-export function useBestDay() {
+export function useBestDay(period: Period) {
   const token = useToken();
-  return useQuery({ queryKey: insightKeys.bestDay(), queryFn: () => insightsApi.bestDay(token) });
+  return useQuery({
+    queryKey: insightKeys.bestDay(period),
+    queryFn: () => insightsApi.bestDay(token, bestDayWindowDays(period)),
+  });
 }
 
 export function useInflation() {
@@ -44,10 +48,10 @@ export function useSummary() {
   });
 }
 
-export function useCategoryProducts(category: string) {
+export function useCategoryProducts(category: string, period: Period) {
   const token = useToken();
   return useQuery({
-    queryKey: insightKeys.category(category),
-    queryFn: () => insightsApi.categoryProducts(token, category),
+    queryKey: insightKeys.category(category, period),
+    queryFn: () => insightsApi.categoryProducts(token, category, period),
   });
 }

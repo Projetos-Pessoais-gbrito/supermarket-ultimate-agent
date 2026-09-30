@@ -47,11 +47,16 @@ export const receiptsApi = {
 export const insightsApi = {
   spending: (token: string, months = 6) =>
     apiRequest<SpendingInsight>(`/api/insights/spending?months=${months}`, { token }),
-  savings: (token: string, days = 90) => apiRequest<SavingsInsight>(`/api/insights/savings?days=${days}`, { token }),
-  bestDay: (token: string) => apiRequest<BestDayInsight>('/api/insights/best-day', { token }),
+  /** months = 0 means the whole history */
+  savings: (token: string, months = 3) =>
+    apiRequest<SavingsInsight>(`/api/insights/savings?months=${months}`, { token }),
+  bestDay: (token: string, days = 365) => apiRequest<BestDayInsight>(`/api/insights/best-day?days=${days}`, { token }),
   inflation: (token: string, months = 6) =>
     apiRequest<InflationInsight>(`/api/insights/inflation?months=${months}`, { token }),
   summary: (token: string) => apiRequest<InsightSummary>('/api/insights/summary', { token }),
-  categoryProducts: (token: string, category: string) =>
-    apiRequest<CategoryProducts>(`/api/insights/categories/${encodeURIComponent(category)}/products`, { token }),
+  categoryProducts: (token: string, category: string, months = 6) =>
+    apiRequest<CategoryProducts>(
+      `/api/insights/categories/${encodeURIComponent(category)}/products?months=${months}`,
+      { token },
+    ),
 };
