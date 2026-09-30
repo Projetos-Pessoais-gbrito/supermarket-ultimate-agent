@@ -1,4 +1,4 @@
-import { isReceiptQrCode } from './qrCode';
+import { isKeyOnlyLink, isReceiptQrCode } from './qrCode';
 
 const KEY = '35260111222333000181650010000123451123456788';
 const SP = 'https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx';
@@ -23,5 +23,24 @@ describe('isReceiptQrCode', () => {
     KEY,
   ])('rejects %s', data => {
     expect(isReceiptQrCode(data)).toBe(false);
+  });
+});
+
+describe('isKeyOnlyLink', () => {
+  it.each([
+    `https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe=${KEY}`,
+    `${SP}?p=${KEY}`,
+    `${SP}?chNFe=${KEY}&nVersao=100`,
+  ])('flags %s', url => {
+    expect(isKeyOnlyLink(url)).toBe(true);
+  });
+
+  it.each([
+    `${SP}?p=${KEY}|2|1|1|abc`,
+    `${SP}?p=${KEY}%7C2%7C1%7C1%7Cabc`,
+    `${SP}?p=${KEY}|3|1`,
+    `${SP}?chNFe=${KEY}&nVersao=100&cHashQRCode=abc`,
+  ])('accepts %s', url => {
+    expect(isKeyOnlyLink(url)).toBe(false);
   });
 });
