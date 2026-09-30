@@ -9,6 +9,7 @@ import com.supermarketagent.receipt.persistence.Receipt;
 import com.supermarketagent.receipt.persistence.ReceiptItem;
 import com.supermarketagent.receipt.persistence.ReceiptPayment;
 import com.supermarketagent.receipt.persistence.ReceiptRepository;
+import com.supermarketagent.receipt.persistence.ReceiptSource;
 import com.supermarketagent.receipt.provider.FetchedReceipt;
 import com.supermarketagent.receipt.provider.ParsedReceipt;
 import java.time.ZoneId;
@@ -30,12 +31,16 @@ class ReceiptWriter {
     }
 
     @Transactional
-    long save(long userId, FetchedReceipt fetched, ZoneId timeZone, String sourceUrl) {
+    long save(long userId, FetchedReceipt fetched, ZoneId timeZone, String sourceUrl, ReceiptSource source) {
         ParsedReceipt parsed = fetched.receipt();
         ParsedReceipt.Store parsedStore = parsed.store();
-        long storeId = stores.upsert(parsedStore.cnpj(), parsedStore.name(),
-                StoreNames.displayName(parsedStore.cnpj(), parsedStore.name()), parsedStore.address(),
-                parsed.accessKey().stateCode());
+        String displayName = StoreNames.displayName(parsedStore.cnpj(), parsedStore.name());
+        String stateCode = parsed.accessKey().stateCode();
+        // Pages the backend could not verify may add new stores/products but never rename shared ones
+        long storeId = source.updatesSharedCatalog()
+                ? stores.upsert(parsedStore.cnpj(), parsedStore.name(), displayName, parsedStore.address(), stateCode)
+                : stores.insertIfAbsent(parsedStore.cnpj(), parsedStore.name(), displayName, parsedStore.address(),
+                        stateCode);
         Store store = stores.getReferenceById(storeId);
 
         Receipt receipt = new Receipt(
@@ -49,10 +54,13 @@ class ReceiptWriter {
                 parsed.discountAmount(),
                 parsed.approximateTaxes(),
                 sourceUrl,
-                fetched.sanitizedHtml());
+                fetched.sanitizedHtml(),
+                source);
 
         for (ParsedReceipt.Item item : parsed.items()) {
-            long storeProductId = storeProducts.upsert(storeId, item.code(), item.description(), item.unit());
+            long storeProductId = source.updatesSharedCatalog()
+                    ? storeProducts.upsert(storeId, item.code(), item.description(), item.unit())
+                    : storeProducts.insertIfAbsent(storeId, item.code(), item.description(), item.unit());
             StoreProduct storeProduct = storeProducts.getReferenceById(storeProductId);
             receipt.addItem(new ReceiptItem(storeProduct, item.lineNumber(), item.quantity(), item.unit(),
                     item.unitPrice(), item.totalPrice()));
