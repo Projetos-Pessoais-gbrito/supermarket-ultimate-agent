@@ -10,6 +10,7 @@ import type {
   SavingsInsight,
   SpendingInsight,
 } from '../../../api/types';
+import { BudgetCard } from '../../../budget/BudgetCard';
 import { formatCurrency, formatMonthLong, formatMonthShort, formatPercent } from '../../../format';
 import {
   DEFAULT_PERIOD,
@@ -66,6 +67,7 @@ export default function DashboardScreen() {
             <>
               <MonthHero spending={spending.data} />
               {summary.data && <TipsCard summary={summary.data} />}
+              <BudgetCard />
               <View style={styles.tiles}>
                 <SavingsTile savings={savings.data} period={period} />
                 <BestTimeTile bestDay={bestDay.data} />
