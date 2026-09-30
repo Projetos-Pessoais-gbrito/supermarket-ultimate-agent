@@ -8,10 +8,12 @@ import { priceStats } from '../../../insights/priceStats';
 import { usePriceHistory } from '../../../insights/queries';
 import { ColumnChart } from '../../../ui/charts';
 import { ErrorBanner } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 /** Every price the user paid for a product, with where it was cheapest. */
 export default function ProductPriceHistoryScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error, isPending } = usePriceHistory(Number(id));
   const stats = data ? priceStats(data.prices) : null;
@@ -88,6 +90,7 @@ function where(point: PricePoint): string {
 }
 
 function Tile({ label, value, note }: { label: string; value: string; note: string }) {
+  const styles = useStyles();
   return (
     <View style={[styles.card, styles.tile]}>
       <Text style={styles.muted}>{label}</Text>
@@ -97,7 +100,7 @@ function Tile({ label, value, note }: { label: string; value: string; note: stri
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
   content: { padding: spacing.md, gap: spacing.md },
@@ -118,4 +121,4 @@ const styles = StyleSheet.create({
   },
   rowMain: { flex: 1, marginRight: spacing.md },
   value: { fontSize: 15, fontWeight: '700', color: colors.text },
-});
+}));

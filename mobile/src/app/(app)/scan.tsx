@@ -7,11 +7,16 @@ import { errorMessage, KEY_ONLY_LINK_MESSAGE } from '../../api/messages';
 import { accessKeyFromLink, isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
 import { useImportReceipt } from '../../receipts/queries';
 import { Button, ErrorBanner, TextField } from '../../ui/components';
-import { colors, spacing } from '../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../ui/theme';
+
+// The loading layer sits on the camera image, always dark, in light and dark mode alike
+const CAMERA_OVERLAY_TEXT = '#FFFFFF';
 
 const NOT_A_RECEIPT = 'Esse QR code não é de uma nota fiscal (NFC-e). Procure o QR code no fim do cupom.';
 
 export default function ScanScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const importReceipt = useImportReceipt();
@@ -83,7 +88,7 @@ export default function ScanScreen() {
           )}
           {busy && (
             <View style={styles.overlay}>
-              <ActivityIndicator size="large" color={colors.background} />
+              <ActivityIndicator size="large" color={CAMERA_OVERLAY_TEXT} />
               <Text style={styles.overlayText}>Buscando a nota na SEFAZ…</Text>
             </View>
           )}
@@ -123,6 +128,7 @@ export default function ScanScreen() {
 }
 
 function PermissionRequest({ canAskAgain, onRequest }: { canAskAgain: boolean; onRequest: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.permission}>
       <Text style={styles.permissionText}>
@@ -137,7 +143,7 @@ function PermissionRequest({ canAskAgain, onRequest }: { canAskAgain: boolean; o
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, gap: spacing.md },
   cameraBox: {
@@ -155,9 +161,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  overlayText: { color: colors.background, fontSize: 16 },
+  overlayText: { color: CAMERA_OVERLAY_TEXT, fontSize: 16 },
   hint: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
   permission: { padding: spacing.lg, gap: spacing.md, alignItems: 'stretch' },
   permissionText: { fontSize: 15, color: colors.text, textAlign: 'center' },
   manual: { marginTop: spacing.md },
-});
+}));

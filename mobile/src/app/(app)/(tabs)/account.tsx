@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { accountApi, authApi } from '../../../api/endpoints';
 import { API_BASE_URL } from '../../../config';
@@ -10,9 +10,10 @@ import { useAppLock } from '../../../auth/AppLock';
 import { useAuth, useToken } from '../../../auth/AuthProvider';
 import { isBiometricAvailable } from '../../../auth/biometrics';
 import { Button, ErrorBanner, TextField } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 export default function AccountScreen() {
+  const styles = useStyles();
   const token = useToken();
   const { signOut } = useAuth();
   const me = useQuery({ queryKey: ['me'], queryFn: () => authApi.me(token) });
@@ -95,6 +96,8 @@ export default function AccountScreen() {
 }
 
 function BiometricSetting() {
+  const colors = useColors();
+  const styles = useStyles();
   const { enabled, setEnabled } = useAppLock();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -141,7 +144,7 @@ function exportErrorMessage(error: unknown): string {
     : errorMessage(error);
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   content: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, flexGrow: 1 },
   card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md, gap: spacing.md },
   dangerCard: { borderWidth: 1, borderColor: colors.dangerBackground },
@@ -153,4 +156,4 @@ const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   switchText: { flex: 1, gap: spacing.xs },
-});
+}));

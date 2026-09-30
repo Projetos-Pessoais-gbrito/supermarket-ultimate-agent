@@ -6,9 +6,11 @@ import type { ReceiptSummary } from '../../../api/types';
 import { formatCurrency, formatDateTime } from '../../../format';
 import { useReceiptList } from '../../../receipts/queries';
 import { Button, ErrorBanner } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 export default function ReceiptListScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const { data, error, isPending, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useReceiptList();
@@ -40,6 +42,7 @@ export default function ReceiptListScreen() {
 }
 
 function ReceiptRow({ receipt }: { receipt: ReceiptSummary }) {
+  const styles = useStyles();
   const router = useRouter();
   // A plain Pressable: wrapping it in <Link asChild> dropped the style function (card layout lost)
   return (
@@ -61,6 +64,7 @@ function ReceiptRow({ receipt }: { receipt: ReceiptSummary }) {
 }
 
 function EmptyState() {
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>Nenhuma nota ainda</Text>
@@ -71,7 +75,7 @@ function EmptyState() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
   list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
@@ -97,4 +101,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-});
+}));

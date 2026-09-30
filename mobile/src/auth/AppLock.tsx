@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { AppState, StyleSheet, Text, View } from 'react-native';
 
 import { Button } from '../ui/components';
-import { colors, spacing } from '../ui/theme';
+import { makeStyles, spacing } from '../ui/theme';
 import { useAuth } from './AuthProvider';
 import {
   authenticate,
@@ -112,6 +112,7 @@ function LockScreen({
   onUnlocked: () => void;
   onUsePassword: () => void;
 }) {
+  const styles = useStyles();
   const [failed, setFailed] = useState(false);
 
   const unlock = useCallback(
@@ -148,7 +149,7 @@ function LockScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   overlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.background,
@@ -158,4 +159,4 @@ const styles = StyleSheet.create({
   content: { gap: spacing.md },
   title: { fontSize: 24, fontWeight: '700', color: colors.text, textAlign: 'center' },
   text: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: spacing.sm },
-});
+}));

@@ -23,9 +23,11 @@ import { monthComparisonText } from '../../../insights/comparison';
 import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 export default function DashboardScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   useEffect(() => {
@@ -113,6 +115,7 @@ export default function DashboardScreen() {
 }
 
 function MonthHero({ spending }: { spending: SpendingInsight }) {
+  const styles = useStyles();
   const { currentMonth } = spending;
   // Same days of the previous month, so a month in progress is compared fairly
   const comparison = monthComparisonText(spending);
@@ -131,6 +134,7 @@ function MonthHero({ spending }: { spending: SpendingInsight }) {
 }
 
 function TipsCard({ summary }: { summary: InsightSummary }) {
+  const styles = useStyles();
   if (!summary.available || summary.tips.length === 0) {
     return null;
   }
@@ -147,6 +151,7 @@ function TipsCard({ summary }: { summary: InsightSummary }) {
 }
 
 function InflationCard({ inflation }: { inflation: InflationInsight }) {
+  const styles = useStyles();
   const latest = inflation.monthly[inflation.monthly.length - 1];
   if (!latest || latest.changePercent === null) {
     // Keep the card visible so people learn the feature exists and what it needs
@@ -189,6 +194,7 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
 }
 
 function PeriodSelector({ value, onChange }: { value: Period; onChange: (period: Period) => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.periods} accessibilityRole="tablist">
       {PERIODS.map(option => {
@@ -215,6 +221,7 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (period:
 }
 
 function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined; period: Period }) {
+  const styles = useStyles();
   return (
     <View style={[styles.card, styles.tile]}>
       <Text style={styles.cardLabel}>Economia possível</Text>
@@ -229,6 +236,7 @@ function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined;
 }
 
 function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
+  const styles = useStyles();
   const best = bestDay?.bestPeriod;
   return (
     <View style={[styles.card, styles.tile]}>
@@ -249,6 +257,7 @@ function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
 }
 
 function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Period }) {
+  const styles = useStyles();
   const router = useRouter();
   return (
     <Card title="Onde você pagou mais caro" subtitle={periodDescription(period)}>
@@ -275,6 +284,7 @@ function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Pe
 }
 
 function EmptyDashboard() {
+  const styles = useStyles();
   return (
     <View style={[styles.card, styles.empty]}>
       <Text style={styles.emptyTitle}>Seu resumo aparece aqui</Text>
@@ -286,6 +296,7 @@ function EmptyDashboard() {
 }
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{title}</Text>
@@ -295,7 +306,7 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: spacing.md, gap: spacing.md },
   loading: { marginTop: spacing.xl },
@@ -351,4 +362,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-});
+}));

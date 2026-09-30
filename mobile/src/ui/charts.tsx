@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from './theme';
+import { makeStyles, spacing, useColors } from './theme';
 
 export type ChartDatum = { key: string; label: string; value: number; accessibilityLabel?: string };
 
@@ -18,6 +18,8 @@ type ColumnChartProps = {
  * emphasis on one column. Tap a column to read its value (the touch equivalent of a tooltip).
  */
 export function ColumnChart({ data, highlightKey, formatValue, height = 140 }: ColumnChartProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const [selectedKey, setSelectedKey] = useState(highlightKey);
   const max = Math.max(...data.map(d => d.value), 0);
   const selected = data.find(d => d.key === selectedKey) ?? data[data.length - 1];
@@ -79,6 +81,7 @@ type BarListProps = {
 
 /** Ranked horizontal bars with the value written as text, one hue, largest first. */
 export function BarList({ items, formatValue, onPressItem, maxRows = 5 }: BarListProps) {
+  const styles = useStyles();
   const [expanded, setExpanded] = useState(false);
   const sorted = [...items].sort((a, b) => b.value - a.value);
   const hidden = Math.max(sorted.length - maxRows, 0);
@@ -127,7 +130,7 @@ export function BarList({ items, formatValue, onPressItem, maxRows = 5 }: BarLis
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   readout: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.sm },
   readoutValue: { color: colors.text, fontWeight: '600' },
   plot: {
@@ -152,4 +155,4 @@ const styles = StyleSheet.create({
   listValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
   track: { height: 8, borderRadius: 4, backgroundColor: colors.chartTrack, overflow: 'hidden' },
   bar: { height: 8, borderTopRightRadius: 4, borderBottomRightRadius: 4, backgroundColor: colors.primary },
-});
+}));

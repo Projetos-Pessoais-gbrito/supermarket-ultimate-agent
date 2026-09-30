@@ -8,7 +8,7 @@ import { errorMessage } from '../../api/messages';
 import { useImportReceiptPage } from '../../receipts/queries';
 import { isSefazSpPage } from '../../receipts/sefazPage';
 import { Button, ErrorBanner } from '../../ui/components';
-import { colors, spacing } from '../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../ui/theme';
 
 const CONSULTATION_URL = 'https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe=';
 
@@ -31,6 +31,8 @@ const DETECT_RECEIPT = `
  * receipt shows up, its page is sent to the backend and imported.
  */
 export default function SefazConsultationScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const { key } = useLocalSearchParams<{ key: string }>();
   const importPage = useImportReceiptPage();
@@ -150,7 +152,7 @@ export default function SefazConsultationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.background },
   instructions: {
     padding: spacing.md,
@@ -163,10 +165,10 @@ const styles = StyleSheet.create({
   page: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
   },
   overlayText: { fontSize: 16, color: colors.text },
-});
+}));
