@@ -1,4 +1,11 @@
-import { StyleSheet, useColorScheme, type ColorSchemeName } from 'react-native';
+import {
+  StyleSheet,
+  useColorScheme,
+  type ColorSchemeName,
+  type ImageStyle,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 
 export type Colors = {
   primary: string;
@@ -75,7 +82,10 @@ export function useColors(): Colors {
  * at module level, then `const styles = useStyles()` inside the component. Styles are built once per
  * palette.
  */
-export function makeStyles<T extends StyleSheet.NamedStyles<T>>(factory: (colors: Colors) => T): () => T {
+/** Style literals keep their narrow types (e.g. fontWeight: '700'); RN 0.88 no longer exports NamedStyles. */
+type NamedStyles<T> = { [P in keyof T]: ViewStyle | TextStyle | ImageStyle };
+
+export function makeStyles<T extends NamedStyles<T>>(factory: (colors: Colors) => T): () => T {
   const cache = new Map<Colors, T>();
   return function useStyles() {
     const palette = useColors();

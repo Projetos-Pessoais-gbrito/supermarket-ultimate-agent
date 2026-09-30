@@ -14,7 +14,8 @@ export async function shareExport(data: unknown): Promise<void> {
     file.delete();
   }
   file.create();
-  file.write(JSON.stringify(data, null, 2));
+  // SDK 58: write() is async; wait for it so the share sheet never gets a partial file
+  await file.write(JSON.stringify(data, null, 2));
   if (!(await Sharing.isAvailableAsync())) {
     throw new Error('Compartilhamento indisponível neste aparelho');
   }

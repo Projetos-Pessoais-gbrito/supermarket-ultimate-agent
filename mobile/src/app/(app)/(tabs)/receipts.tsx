@@ -92,12 +92,14 @@ export default function ReceiptListScreen() {
           renderItem={({ item }) => <Row row={item} />}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
-          refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={refetch} />}
+          refreshControl={
+            <RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={() => void refetch()} />
+          }
           onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
           onEndReachedThreshold={0.5}
-          ListHeaderComponent={error ? <ErrorBanner message={errorMessage(error)} /> : null}
-          ListEmptyComponent={error ? null : filtering ? <NoMatches onClear={clearFilters} /> : <EmptyState />}
-          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : null}
+          ListHeaderComponent={error ? <ErrorBanner message={errorMessage(error)} /> : undefined}
+          ListEmptyComponent={error ? undefined : filtering ? <NoMatches onClear={clearFilters} /> : <EmptyState />}
+          ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : undefined}
         />
       )}
       <View style={styles.footer}>
