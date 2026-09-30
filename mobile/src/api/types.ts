@@ -103,3 +103,18 @@ export type InflationInsight = {
 };
 
 export type InsightSummary = { available: boolean; tips: string[] };
+
+export type CategoryProducts = {
+  category: string;
+  label: string;
+  total: number;
+  products: {
+    productId: number | null;
+    name: string;
+    timesBought: number;
+    totalSpent: number;
+    lastUnitPrice: number;
+    lastStoreName: string;
+    lastBoughtAt: string;
+  }[];
+};

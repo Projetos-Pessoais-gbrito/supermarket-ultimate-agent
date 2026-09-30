@@ -10,6 +10,7 @@ export const insightKeys = {
   bestDay: () => [...insightKeys.all, 'best-day'] as const,
   inflation: () => [...insightKeys.all, 'inflation'] as const,
   summary: () => [...insightKeys.all, 'summary'] as const,
+  category: (category: string) => [...insightKeys.all, 'category', category] as const,
 };
 
 export function useSpending() {
@@ -40,5 +41,13 @@ export function useSummary() {
     queryFn: () => insightsApi.summary(token),
     retry: false,
     staleTime: 5 * 60_000,
+  });
+}
+
+export function useCategoryProducts(category: string) {
+  const token = useToken();
+  return useQuery({
+    queryKey: insightKeys.category(category),
+    queryFn: () => insightsApi.categoryProducts(token, category),
   });
 }

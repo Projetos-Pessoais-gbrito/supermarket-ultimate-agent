@@ -1,6 +1,7 @@
 import { apiRequest } from './client';
 import type {
   BestDayInsight,
+  CategoryProducts,
   InflationInsight,
   InsightSummary,
   Me,
@@ -38,4 +39,6 @@ export const insightsApi = {
   inflation: (token: string, months = 6) =>
     apiRequest<InflationInsight>(`/api/insights/inflation?months=${months}`, { token }),
   summary: (token: string) => apiRequest<InsightSummary>('/api/insights/summary', { token }),
+  categoryProducts: (token: string, category: string) =>
+    apiRequest<CategoryProducts>(`/api/insights/categories/${encodeURIComponent(category)}/products`, { token }),
 };
