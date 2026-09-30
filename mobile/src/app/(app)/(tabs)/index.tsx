@@ -3,9 +3,15 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/messages';
-import type { BestDayInsight, SavingsInsight, SpendingInsight } from '../../../api/types';
+import type {
+  BestDayInsight,
+  InflationInsight,
+  InsightSummary,
+  SavingsInsight,
+  SpendingInsight,
+} from '../../../api/types';
 import { formatCurrency, formatMonthLong, formatMonthShort, formatPercent } from '../../../format';
-import { useBestDay, useSavings, useSpending } from '../../../insights/queries';
+import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
 import { colors, spacing } from '../../../ui/theme';
@@ -15,10 +21,14 @@ export default function DashboardScreen() {
   const spending = useSpending();
   const savings = useSavings();
   const bestDay = useBestDay();
+  const inflation = useInflation();
+  // Optional AI tips: never block the dashboard or show their errors
+  const summary = useSummary();
 
-  const refreshing = spending.isRefetching || savings.isRefetching || bestDay.isRefetching;
-  const refresh = () => Promise.all([spending.refetch(), savings.refetch(), bestDay.refetch()]);
-  const error = spending.error ?? savings.error ?? bestDay.error;
+  const queries = [spending, savings, bestDay, inflation, summary];
+  const refreshing = queries.some(query => query.isRefetching);
+  const refresh = () => Promise.all(queries.map(query => query.refetch()));
+  const error = spending.error ?? savings.error ?? bestDay.error ?? inflation.error;
   const hasPurchases = spending.data?.monthly.some(month => month.receiptCount > 0) ?? false;
 
   return (
@@ -36,10 +46,12 @@ export default function DashboardScreen() {
           spending.data && (
             <>
               <MonthHero spending={spending.data} />
+              {summary.data && <TipsCard summary={summary.data} />}
               <View style={styles.tiles}>
                 <SavingsTile savings={savings.data} />
                 <BestTimeTile bestDay={bestDay.data} />
               </View>
+              {inflation.data && <InflationCard inflation={inflation.data} />}
               <Card title="Gastos por mês">
                 <ColumnChart
                   data={spending.data.monthly.map(month => ({
@@ -100,6 +112,56 @@ function MonthHero({ spending }: { spending: SpendingInsight }) {
         {comparison} · {currentMonth.receiptCount} {currentMonth.receiptCount === 1 ? 'nota' : 'notas'}
       </Text>
     </View>
+  );
+}
+
+function TipsCard({ summary }: { summary: InsightSummary }) {
+  if (!summary.available || summary.tips.length === 0) {
+    return null;
+  }
+  return (
+    <Card title="Dicas para você" subtitle="Geradas por IA a partir das suas notas">
+      {summary.tips.map(tip => (
+        <View key={tip} style={styles.tipRow}>
+          <Text style={styles.tipBullet}>•</Text>
+          <Text style={styles.tipText}>{tip}</Text>
+        </View>
+      ))}
+    </Card>
+  );
+}
+
+function InflationCard({ inflation }: { inflation: InflationInsight }) {
+  const latest = inflation.monthly[inflation.monthly.length - 1];
+  if (!latest || latest.changePercent === null) {
+    return null;
+  }
+  const change = latest.changePercent;
+  const direction = change > 0 ? '▲' : change < 0 ? '▼' : '=';
+  const increases = inflation.changes.filter(product => product.changePercent > 0).slice(0, 3);
+
+  return (
+    <Card title="Sua inflação" subtitle={`${formatMonthLong(latest.month)}, comparado ao mês anterior`}>
+      <Text style={styles.tileValue}>
+        {direction} {formatPercent(change)} {change > 0 ? 'mais caro' : change < 0 ? 'mais barato' : 'sem variação'}
+      </Text>
+      <Text style={[styles.muted, styles.inflationBasis]}>
+        {latest.productsCompared} {latest.productsCompared === 1 ? 'produto comparado' : 'produtos comparados'}
+      </Text>
+      {increases.map(product => (
+        <View key={product.productId} style={styles.overpaidRow}>
+          <View style={styles.overpaidMain}>
+            <Text style={styles.overpaidName} numberOfLines={1}>
+              {product.name}
+            </Text>
+            <Text style={styles.muted}>
+              {formatCurrency(product.previousPrice)} → {formatCurrency(product.currentPrice)}
+            </Text>
+          </View>
+          <Text style={styles.overpaidValue}>▲ {formatPercent(product.changePercent)}</Text>
+        </View>
+      ))}
+    </Card>
   );
 }
 
@@ -201,6 +263,10 @@ const styles = StyleSheet.create({
   overpaidMain: { flex: 1, marginRight: spacing.md },
   overpaidName: { fontSize: 15, color: colors.text },
   overpaidValue: { fontSize: 15, fontWeight: '700', color: colors.text },
+  tipRow: { flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.xs },
+  tipBullet: { fontSize: 15, color: colors.primary, fontWeight: '700' },
+  tipText: { flex: 1, fontSize: 15, color: colors.text, lineHeight: 21 },
+  inflationBasis: { marginBottom: spacing.sm },
   empty: { alignItems: 'center', paddingVertical: spacing.xl },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   emptyText: { fontSize: 15, color: colors.textMuted, textAlign: 'center' },
