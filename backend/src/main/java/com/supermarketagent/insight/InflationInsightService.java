@@ -74,12 +74,12 @@ public class InflationInsightService {
         }
 
         List<ProductChange> changes = jdbc.query(MONTHLY_PRICES + """
-                SELECT pairs.product_id, p.normalized_name, previous_price, current_price,
+                SELECT pairs.product_id, COALESCE(p.display_name, p.normalized_name) AS name, previous_price, current_price,
                        current_price / previous_price AS ratio
                 FROM pairs JOIN products p ON p.id = pairs.product_id
                 WHERE month = ?
-                ORDER BY ratio DESC, p.normalized_name""",
-                (rs, row) -> new ProductChange(rs.getLong("product_id"), rs.getString("normalized_name"),
+                ORDER BY ratio DESC, name""",
+                (rs, row) -> new ProductChange(rs.getLong("product_id"), rs.getString("name"),
                         money(rs.getBigDecimal("previous_price")), money(rs.getBigDecimal("current_price")),
                         percent(rs.getBigDecimal("ratio"))),
                 userId, from, to, currentMonth.toString());

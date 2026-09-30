@@ -37,7 +37,7 @@ public class SavingsInsightService {
 
         List<ProductSavings> all = jdbc.query("""
                 WITH purchases AS (
-                    SELECT p.id AS product_id, p.normalized_name AS name,
+                    SELECT p.id AS product_id, COALESCE(p.display_name, p.normalized_name) AS name,
                            COALESCE(s.display_name, s.name) AS store_name, r.issued_at,
                            i.quantity, i.unit_price, i.total_price
                     FROM receipts r

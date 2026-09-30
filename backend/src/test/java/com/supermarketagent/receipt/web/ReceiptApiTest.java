@@ -1,8 +1,10 @@
 package com.supermarketagent.receipt.web;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -100,8 +102,41 @@ class ReceiptApiTest {
     }
 
     @Test
+    void itemsCarryTheirCanonicalProduct() throws Exception {
+        importReceipt(ana, FixtureSpProvider.QR_URL)
+                .andExpect(jsonPath("$.items[0].productId").isNumber())
+                .andExpect(jsonPath("$.items[0].description").value("PAO FRANCES CONG KG BALCAO"));
+    }
+
+    @Test
+    void deletesOwnReceiptButKeepsSharedCatalog() throws Exception {
+        importReceipt(ana, FixtureSpProvider.QR_URL).andExpect(status().isCreated());
+
+        mvc.perform(delete("/api/receipts/1").header(HttpHeaders.AUTHORIZATION, bearer(ana)))
+                .andExpect(status().isNoContent());
+
+        mvc.perform(get("/api/receipts/1").header(HttpHeaders.AUTHORIZATION, bearer(ana)))
+                .andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM receipt_items", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM receipt_payments", Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM stores", Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM store_products", Integer.class)).isPositive();
+    }
+
+    @Test
+    void cannotDeleteSomeoneElsesReceipt() throws Exception {
+        importReceipt(ana, FixtureSpProvider.QR_URL);
+        String bia = register("bia@example.com");
+
+        mvc.perform(delete("/api/receipts/1").header(HttpHeaders.AUTHORIZATION, bearer(bia)))
+                .andExpect(status().isNotFound());
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM receipts", Integer.class)).isEqualTo(1);
+    }
+
+    @Test
     void requiresAuthentication() throws Exception {
         mvc.perform(get("/api/receipts")).andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/receipts/1")).andExpect(status().isUnauthorized());
         mvc.perform(post("/api/receipts").contentType(MediaType.APPLICATION_JSON).content("{\"qrCodeUrl\":\"x\"}"))
                 .andExpect(status().isUnauthorized());
     }

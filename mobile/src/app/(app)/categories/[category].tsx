@@ -1,5 +1,5 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/messages';
 import type { CategoryProducts } from '../../../api/types';
@@ -48,8 +48,17 @@ export default function CategoryProductsScreen() {
 }
 
 function ProductRow({ product }: { product: CategoryProduct }) {
+  const router = useRouter();
+  const productId = product.productId;
   return (
-    <View style={styles.row}>
+    <Pressable
+      disabled={productId === null}
+      onPress={() =>
+        productId !== null && router.push({ pathname: '/products/[id]', params: { id: String(productId) } })
+      }
+      accessibilityRole={productId === null ? undefined : 'button'}
+      accessibilityHint={productId === null ? undefined : 'Mostra o histórico de preços'}
+      style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}>
       <View style={styles.rowMain}>
         <Text style={styles.name}>{product.name}</Text>
         <Text style={styles.muted}>
@@ -57,8 +66,11 @@ function ProductRow({ product }: { product: CategoryProduct }) {
           {formatDate(product.lastBoughtAt)}
         </Text>
       </View>
-      <Text style={styles.value}>{formatCurrency(product.totalSpent)}</Text>
-    </View>
+      <Text style={styles.value}>
+        {formatCurrency(product.totalSpent)}
+        {productId === null ? '' : '  ›'}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -75,6 +87,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: spacing.md,
   },
+  rowPressed: { opacity: 0.6 },
   rowMain: { flex: 1, marginRight: spacing.md },
   name: { fontSize: 15, fontWeight: '600', color: colors.text, marginBottom: 2 },
   muted: { fontSize: 13, color: colors.textMuted },

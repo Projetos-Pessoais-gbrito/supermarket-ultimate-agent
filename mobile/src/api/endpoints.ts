@@ -4,6 +4,7 @@ import type {
   CategoryProducts,
   InflationInsight,
   InsightSummary,
+  PriceHistory,
   Me,
   Page,
   ReceiptDetails,
@@ -52,9 +53,12 @@ export const receiptsApi = {
   list: (token: string, page = 0, size = 20) =>
     apiRequest<Page<ReceiptSummary>>(`/api/receipts?page=${page}&size=${size}`, { token }),
   details: (token: string, id: number) => apiRequest<ReceiptDetails>(`/api/receipts/${id}`, { token }),
+  remove: (token: string, id: number) => apiRequest<void>(`/api/receipts/${id}`, { method: 'DELETE', token }),
 };
 
 export const insightsApi = {
+  priceHistory: (token: string, productId: number) =>
+    apiRequest<PriceHistory>(`/api/insights/products/${productId}/prices`, { token }),
   spending: (token: string, months = 6) =>
     apiRequest<SpendingInsight>(`/api/insights/spending?months=${months}`, { token }),
   /** months = 0 means the whole history */

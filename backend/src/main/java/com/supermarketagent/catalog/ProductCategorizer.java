@@ -41,7 +41,7 @@ public class ProductCategorizer {
         }
         List<PendingProduct> pending = jdbc.query("""
                 SELECT id, normalized_name, measure_value, measure_unit FROM products
-                WHERE category IS NULL ORDER BY id LIMIT ?""",
+                WHERE category IS NULL OR display_name IS NULL ORDER BY id LIMIT ?""",
                 (rs, row) -> new PendingProduct(rs.getLong(1), rs.getString(2), rs.getBigDecimal(3), rs.getString(4)),
                 BATCH_SIZE);
         if (pending.isEmpty()) {
@@ -61,11 +61,26 @@ public class ProductCategorizer {
         for (Answer.Item item : answer.items() == null ? List.<Answer.Item>of() : answer.items()) {
             // Ignore ids the model made up; unanswered products stay pending for the next run
             if (item.category() != null && requested.contains(item.id())) {
-                updated += jdbc.update("UPDATE products SET category = ? WHERE id = ? AND category IS NULL",
-                        item.category().name(), item.id());
+                String name = displayName(item.name());
+                // Only fills what is still empty; a row counts as updated only when something changed
+                updated += jdbc.update("""
+                        UPDATE products
+                        SET category = COALESCE(category, ?), display_name = COALESCE(display_name, ?)
+                        WHERE id = ?
+                          AND (category IS NULL OR (display_name IS NULL AND CAST(? AS varchar) IS NOT NULL))""",
+                        item.category().name(), name, item.id(), name);
             }
         }
         return updated;
+    }
+
+    /** Trims the AI name; blank or absurdly long answers are ignored. */
+    static String displayName(String name) {
+        if (name == null || name.isBlank()) {
+            return null;
+        }
+        String trimmed = name.strip().replaceAll("\\s+", " ");
+        return trimmed.length() > 120 ? null : trimmed;
     }
 
     private static String prompt(List<PendingProduct> products) {
@@ -75,8 +90,12 @@ public class ProductCategorizer {
         return """
                 Você classifica produtos de supermercados brasileiros. As descrições vêm de cupons fiscais,
                 em maiúsculas e com abreviações (ex.: QJO = queijo, REFRIG = refrigerante, SAB = sabão ou sabonete).
-                Escolha exatamente uma categoria para cada produto, usando o id informado.
-                Sacolas, descartáveis e utensílios são UTILIDADES. Use OUTROS só quando nenhuma servir.
+                Para cada produto, usando o id informado:
+                - escolha exatamente uma categoria; sacolas, descartáveis e utensílios são UTILIDADES;
+                  use OUTROS só quando nenhuma servir;
+                - escreva um nome legível em português, com acentos, sem abreviações e em letras normais
+                  (ex.: "BEB LACTEA YOPRO 250ML BAUNILHA" -> "Bebida láctea YoPro 250 ml baunilha").
+                  Mantenha a marca e o tamanho; não invente informações.
 
                 Produtos:
                 """ + lines;
@@ -91,8 +110,9 @@ public class ProductCategorizer {
                             "properties", Map.of(
                                     "id", Map.of("type", "integer"),
                                     "category", Map.of("type", "string", "enum",
-                                            Arrays.stream(ProductCategory.values()).map(Enum::name).toList())),
-                            "required", List.of("id", "category")))),
+                                            Arrays.stream(ProductCategory.values()).map(Enum::name).toList()),
+                                    "name", Map.of("type", "string")),
+                            "required", List.of("id", "category", "name")))),
             "required", List.of("items"));
 
     private record PendingProduct(long id, String name, BigDecimal measureValue, String measureUnit) {
@@ -104,7 +124,7 @@ public class ProductCategorizer {
 
     record Answer(List<Item> items) {
 
-        record Item(long id, ProductCategory category) {
+        record Item(long id, ProductCategory category, String name) {
         }
     }
 }
