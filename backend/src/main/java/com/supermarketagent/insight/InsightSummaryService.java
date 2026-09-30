@@ -116,9 +116,9 @@ public class InsightSummaryService {
             facts.add("Mercado onde mais gastou nos últimos 3 meses: " + top.storeName() + " (" + money(top.total()) + ").");
         }
 
-        SavingsInsight saved = savings.savings(userId, now, 90);
+        SavingsInsight saved = savings.savings(userId, currentMonth, 3);
         if (saved.potentialSavings().signum() > 0) {
-            facts.add("Economia possível nos últimos 90 dias pagando sempre o menor preço já pago: "
+            facts.add("Economia possível nos últimos 3 meses pagando o menor preço visto até 2 meses antes ou depois: "
                     + money(saved.potentialSavings()) + ".");
             var product = saved.products().getFirst();
             facts.add("Produto em que mais pagou acima do melhor preço: " + product.name() + " (melhor preço "

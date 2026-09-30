@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
-import type { ReactNode } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../../api/messages';
 import type {
@@ -11,6 +11,14 @@ import type {
   SpendingInsight,
 } from '../../../api/types';
 import { formatCurrency, formatMonthLong, formatMonthShort, formatPercent } from '../../../format';
+import {
+  DEFAULT_PERIOD,
+  loadPeriod,
+  PERIODS,
+  periodDescription,
+  savePeriod,
+  type Period,
+} from '../../../insights/period';
 import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
@@ -18,9 +26,18 @@ import { colors, spacing } from '../../../ui/theme';
 
 export default function DashboardScreen() {
   const router = useRouter();
-  const spending = useSpending();
-  const savings = useSavings();
-  const bestDay = useBestDay();
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
+  useEffect(() => {
+    loadPeriod().then(setPeriod);
+  }, []);
+  const choosePeriod = (next: Period) => {
+    setPeriod(next);
+    void savePeriod(next);
+  };
+
+  const spending = useSpending(period);
+  const savings = useSavings(period);
+  const bestDay = useBestDay(period);
   const inflation = useInflation();
   // Optional AI tips: never block the dashboard or show their errors
   const summary = useSummary();
@@ -36,6 +53,7 @@ export default function DashboardScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+        <PeriodSelector value={period} onChange={choosePeriod} />
         {error && <ErrorBanner message={errorMessage(error)} />}
 
         {spending.isPending ? (
@@ -48,11 +66,11 @@ export default function DashboardScreen() {
               <MonthHero spending={spending.data} />
               {summary.data && <TipsCard summary={summary.data} />}
               <View style={styles.tiles}>
-                <SavingsTile savings={savings.data} />
+                <SavingsTile savings={savings.data} period={period} />
                 <BestTimeTile bestDay={bestDay.data} />
               </View>
               {inflation.data && <InflationCard inflation={inflation.data} />}
-              <Card title="Gastos por mês">
+              <Card title="Gastos por mês" subtitle={periodDescription(period)}>
                 <ColumnChart
                   data={spending.data.monthly.map(month => ({
                     key: month.month,
@@ -64,20 +82,24 @@ export default function DashboardScreen() {
                   formatValue={formatCurrency}
                 />
               </Card>
-              <Card title="Por categoria" subtitle="Últimos 6 meses · toque para ver os produtos">
+              <Card title="Por categoria" subtitle={`${periodDescription(period)} · toque para ver os produtos`}>
                 <BarList
                   items={spending.data.byCategory.map(c => ({ key: c.category ?? 'none', label: c.label, value: c.total }))}
                   formatValue={formatCurrency}
-                  onPressItem={category => router.push({ pathname: '/categories/[category]', params: { category } })}
+                  onPressItem={category =>
+                    router.push({ pathname: '/categories/[category]', params: { category, months: String(period) } })
+                  }
                 />
               </Card>
-              <Card title="Por mercado" subtitle="Últimos 6 meses">
+              <Card title="Por mercado" subtitle={periodDescription(period)}>
                 <BarList
                   items={spending.data.byStore.map(s => ({ key: String(s.storeId), label: s.storeName, value: s.total }))}
                   formatValue={formatCurrency}
                 />
               </Card>
-              {savings.data && savings.data.products.length > 0 && <OverpaidList savings={savings.data} />}
+              {savings.data && savings.data.products.length > 0 && (
+                <OverpaidList savings={savings.data} period={period} />
+              )}
             </>
           )
         )}
@@ -166,14 +188,34 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
   );
 }
 
-function SavingsTile({ savings }: { savings: SavingsInsight | undefined }) {
+function PeriodSelector({ value, onChange }: { value: Period; onChange: (period: Period) => void }) {
+  return (
+    <View style={styles.periods} accessibilityRole="tablist">
+      {PERIODS.map(option => {
+        const selected = option.value === value;
+        return (
+          <Pressable
+            key={option.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => onChange(option.value)}
+            style={[styles.period, selected && styles.periodSelected]}>
+            <Text style={[styles.periodText, selected && styles.periodTextSelected]}>{option.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined; period: Period }) {
   return (
     <View style={[styles.card, styles.tile]}>
       <Text style={styles.cardLabel}>Economia possível</Text>
       <Text style={styles.tileValue}>{savings ? formatCurrency(savings.potentialSavings) : '…'}</Text>
       <Text style={styles.muted}>
         {savings && savings.potentialSavings > 0
-          ? `nos últimos ${savings.days} dias, pagando sempre o menor preço que você já pagou`
+          ? `${periodDescription(period).toLowerCase()}, pagando o menor preço visto até 2 meses antes ou depois`
           : 'Compre os mesmos produtos mais vezes para comparar preços'}
       </Text>
     </View>
@@ -200,9 +242,9 @@ function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
   );
 }
 
-function OverpaidList({ savings }: { savings: SavingsInsight }) {
+function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Period }) {
   return (
-    <Card title="Onde você pagou mais caro" subtitle={`Últimos ${savings.days} dias`}>
+    <Card title="Onde você pagou mais caro" subtitle={periodDescription(period)}>
       {savings.products.slice(0, 5).map(product => (
         <View key={product.productId} style={styles.overpaidRow}>
           <View style={styles.overpaidMain}>
@@ -252,6 +294,16 @@ const styles = StyleSheet.create({
   hero: { fontSize: 48, fontWeight: '700', color: colors.text, marginVertical: spacing.xs },
   muted: { fontSize: 13, color: colors.textMuted },
   tiles: { flexDirection: 'row', gap: spacing.md },
+  periods: {
+    flexDirection: 'row',
+    backgroundColor: colors.chartTrack,
+    borderRadius: 10,
+    padding: 3,
+  },
+  period: { flex: 1, minHeight: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  periodSelected: { backgroundColor: colors.background },
+  periodText: { fontSize: 14, color: colors.textMuted },
+  periodTextSelected: { color: colors.text, fontWeight: '600' },
   tile: { flex: 1, gap: spacing.xs },
   tileValue: { fontSize: 22, fontWeight: '700', color: colors.text },
   overpaidRow: {

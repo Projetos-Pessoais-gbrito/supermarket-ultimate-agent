@@ -79,7 +79,9 @@ export type SpendingInsight = {
 };
 
 export type SavingsInsight = {
-  days: number;
+  months: number;
+  /** Purchases are compared with the best price within this many days of them */
+  comparisonWindowDays: number;
   potentialSavings: number;
   comparedSpending: number;
   products: {

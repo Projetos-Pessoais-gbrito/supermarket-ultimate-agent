@@ -28,16 +28,19 @@ public class SpendingInsightService {
     static final String UNCATEGORIZED_LABEL = "Sem categoria";
 
     private final JdbcTemplate jdbc;
+    private final InsightWindow window;
 
-    SpendingInsightService(JdbcTemplate jdbc) {
+    SpendingInsightService(JdbcTemplate jdbc, InsightWindow window) {
         this.jdbc = jdbc;
+        this.window = window;
     }
 
     /**
-     * @param currentMonth the month considered "now" (São Paulo time)
-     * @param months       window size, including the current month
+     * @param currentMonth    the month considered "now" (São Paulo time)
+     * @param requestedMonths window size, including the current month; {@link InsightWindow#ALL} for everything
      */
-    public SpendingInsight spending(long userId, YearMonth currentMonth, int months) {
+    public SpendingInsight spending(long userId, YearMonth currentMonth, int requestedMonths) {
+        int months = window.months(userId, currentMonth, requestedMonths);
         YearMonth firstMonth = currentMonth.minusMonths(months - 1L);
         Timestamp from = Timestamp.from(startOf(firstMonth));
         Timestamp to = Timestamp.from(endOf(currentMonth));
