@@ -1,6 +1,6 @@
 # Mobile
 
-React Native + Expo (SDK 57) + TypeScript app, using Expo Router (file-based routes in `src/app`).
+React Native + Expo (SDK 58) + TypeScript app, using Expo Router (file-based routes in `src/app`).
 
 ## Run
 
