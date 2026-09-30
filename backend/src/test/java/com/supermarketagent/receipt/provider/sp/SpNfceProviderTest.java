@@ -7,6 +7,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.supermarketagent.receipt.domain.AccessKey;
@@ -23,7 +24,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
@@ -35,6 +38,11 @@ class SpNfceProviderTest {
             + "?p=" + KEY + "|2|1|1|0123456789abcdef0123456789abcdef01234567";
     private static final String EXPECTED_REQUEST = "https://www.nfce.fazenda.sp.gov.br" + PATH
             + "?p=" + KEY + "%7C2%7C1%7C1%7C0123456789abcdef0123456789abcdef01234567";
+
+    private static final String HASH_PARAMS = "|2|1|1|0123456789abcdef0123456789abcdef01234567";
+    // What is actually printed on SP receipts; SEFAZ answers it with a 302 to the consultation page
+    private static final String SHORT_QR_URL = "https://www.nfce.fazenda.sp.gov.br/qrcode?p=" + KEY + HASH_PARAMS;
+    private static final String SHORT_REQUEST = SHORT_QR_URL.replace("|", "%7C");
 
     private MockRestServiceServer server;
     private SpNfceProvider provider;
@@ -70,6 +78,48 @@ class SpNfceProviderTest {
         String html = provider.fetch(new AccessKey(KEY), QR_URL).sanitizedHtml();
 
         assertThat(html).doesNotContain("123.456.789-09", "MARIA DA SILVA").contains("PAO FRANCES");
+    }
+
+    @Test
+    void followsTheShortLinkPrintedOnReceipts() {
+        // SEFAZ-SP sends the pipes unencoded in the Location header
+        server.expect(requestTo(SHORT_REQUEST)).andRespond(withStatus(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "https://www.nfce.fazenda.sp.gov.br" + PATH + "?p=" + KEY + HASH_PARAMS));
+        server.expect(requestTo(EXPECTED_REQUEST)).andRespond(withSuccess(fixture(), MediaType.TEXT_HTML));
+
+        assertThat(provider.fetch(new AccessKey(KEY), SHORT_QR_URL).receipt().items()).hasSize(10);
+        server.verify();
+    }
+
+    @Test
+    void followsRelativeRedirects() {
+        server.expect(requestTo(SHORT_REQUEST)).andRespond(withStatus(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, PATH + "?p=" + KEY + HASH_PARAMS));
+        server.expect(requestTo(EXPECTED_REQUEST)).andRespond(withSuccess(fixture(), MediaType.TEXT_HTML));
+
+        assertThat(provider.fetch(new AccessKey(KEY), SHORT_QR_URL).receipt().items()).hasSize(10);
+        server.verify();
+    }
+
+    @Test
+    void refusesRedirectsOutsideSefazSp() {
+        server.expect(requestTo(SHORT_REQUEST)).andRespond(withStatus(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "https://evil.example.com/steal?p=" + KEY));
+
+        assertThatThrownBy(() -> provider.fetch(new AccessKey(KEY), SHORT_QR_URL))
+                .isInstanceOf(UntrustedReceiptUrlException.class);
+        server.verify();
+    }
+
+    @Test
+    void stopsFollowingRedirectLoops() {
+        server.expect(ExpectedCount.times(4), requestTo(SHORT_REQUEST))
+                .andRespond(withStatus(HttpStatus.FOUND).header(HttpHeaders.LOCATION, SHORT_QR_URL));
+
+        assertThatThrownBy(() -> provider.fetch(new AccessKey(KEY), SHORT_QR_URL))
+                .isInstanceOf(NfcePageParseException.class)
+                .hasMessageContaining("redirected");
+        server.verify();
     }
 
     @Test

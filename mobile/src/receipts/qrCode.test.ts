@@ -5,6 +5,8 @@ const SP = 'https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/Consu
 
 describe('isReceiptQrCode', () => {
   it.each([
+    // short link actually printed on SP receipts
+    `https://www.nfce.fazenda.sp.gov.br/qrcode?p=${KEY}|2|1|1|abc`,
     `${SP}?p=${KEY}|2|1|1|abc`,
     `${SP}?p=${KEY}%7C2%7C1%7C1%7Cabc`,
     `http://www.fazenda.pr.gov.br/nfce/qrcode?p=${KEY}|2|1|1|abc`,
