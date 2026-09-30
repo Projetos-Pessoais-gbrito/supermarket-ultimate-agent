@@ -1,0 +1,121 @@
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { errorMessage } from '../../../api/messages';
+import type { PricePoint } from '../../../api/types';
+import { formatCurrency, formatDate, formatPercent } from '../../../format';
+import { priceStats } from '../../../insights/priceStats';
+import { usePriceHistory } from '../../../insights/queries';
+import { ColumnChart } from '../../../ui/charts';
+import { ErrorBanner } from '../../../ui/components';
+import { colors, spacing } from '../../../ui/theme';
+
+/** Every price the user paid for a product, with where it was cheapest. */
+export default function ProductPriceHistoryScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { data, error, isPending } = usePriceHistory(Number(id));
+  const stats = data ? priceStats(data.prices) : null;
+
+  return (
+    <View style={styles.container}>
+      <Stack.Screen options={{ title: 'Histórico de preços' }} />
+      {isPending ? (
+        <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
+      ) : !data || !stats ? (
+        <View style={styles.content}>
+          <ErrorBanner message={errorMessage(error)} />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          <View style={styles.card}>
+            <Text style={styles.name}>{data.name}</Text>
+            <Text style={styles.muted}>
+              {data.prices.length} {data.prices.length === 1 ? 'compra' : 'compras'}
+            </Text>
+          </View>
+
+          <View style={styles.tiles}>
+            <Tile label="Último preço" value={formatCurrency(stats.last.unitPrice)} note={where(stats.last)} />
+            <Tile label="Melhor preço" value={formatCurrency(stats.lowest.unitPrice)} note={where(stats.lowest)} />
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.muted}>
+              Média {formatCurrency(stats.average)} · maior {formatCurrency(stats.highest.unitPrice)}
+            </Text>
+            {stats.lastAboveLowestPercent > 0 && (
+              <Text style={styles.text}>
+                Na última compra você pagou {formatPercent(stats.lastAboveLowestPercent)} acima do seu melhor preço.
+              </Text>
+            )}
+          </View>
+
+          {data.prices.length > 1 && (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Preço por compra</Text>
+              <ColumnChart
+                data={data.prices.map((point, index) => ({
+                  key: String(index),
+                  label: formatDate(point.issuedAt).slice(0, 5),
+                  accessibilityLabel: `${formatDate(point.issuedAt)} no ${point.storeName}`,
+                  value: point.unitPrice,
+                }))}
+                highlightKey={String(data.prices.length - 1)}
+                formatValue={formatCurrency}
+              />
+            </View>
+          )}
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Compras</Text>
+            {[...data.prices].reverse().map((point, index) => (
+              <View key={`${point.issuedAt}-${index}`} style={styles.row}>
+                <View style={styles.rowMain}>
+                  <Text style={styles.text}>{point.storeName}</Text>
+                  <Text style={styles.muted}>{formatDate(point.issuedAt)}</Text>
+                </View>
+                <Text style={styles.value}>{formatCurrency(point.unitPrice)}</Text>
+              </View>
+            ))}
+          </View>
+        </ScrollView>
+      )}
+    </View>
+  );
+}
+
+function where(point: PricePoint): string {
+  return `${point.storeName} · ${formatDate(point.issuedAt)}`;
+}
+
+function Tile({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <View style={[styles.card, styles.tile]}>
+      <Text style={styles.muted}>{label}</Text>
+      <Text style={styles.tileValue}>{value}</Text>
+      <Text style={styles.muted}>{note}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  loading: { marginTop: spacing.xl },
+  content: { padding: spacing.md, gap: spacing.md },
+  card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md, gap: spacing.xs },
+  name: { fontSize: 18, fontWeight: '700', color: colors.text },
+  cardTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
+  tiles: { flexDirection: 'row', gap: spacing.md },
+  tile: { flex: 1 },
+  tileValue: { fontSize: 22, fontWeight: '700', color: colors.text },
+  text: { fontSize: 15, color: colors.text },
+  muted: { fontSize: 13, color: colors.textMuted },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  rowMain: { flex: 1, marginRight: spacing.md },
+  value: { fontSize: 15, fontWeight: '700', color: colors.text },
+});

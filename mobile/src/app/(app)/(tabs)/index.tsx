@@ -243,10 +243,16 @@ function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
 }
 
 function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Period }) {
+  const router = useRouter();
   return (
     <Card title="Onde você pagou mais caro" subtitle={periodDescription(period)}>
       {savings.products.slice(0, 5).map(product => (
-        <View key={product.productId} style={styles.overpaidRow}>
+        <Pressable
+          key={product.productId}
+          onPress={() => router.push({ pathname: '/products/[id]', params: { id: String(product.productId) } })}
+          accessibilityRole="button"
+          accessibilityHint="Mostra o histórico de preços"
+          style={({ pressed }) => [styles.overpaidRow, pressed && styles.pressed]}>
           <View style={styles.overpaidMain}>
             <Text style={styles.overpaidName} numberOfLines={1}>
               {product.name}
@@ -255,8 +261,8 @@ function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Pe
               Melhor preço {formatCurrency(product.bestUnitPrice)} no {product.bestStoreName}
             </Text>
           </View>
-          <Text style={styles.overpaidValue}>+{formatCurrency(product.extraPaid)}</Text>
-        </View>
+          <Text style={styles.overpaidValue}>+{formatCurrency(product.extraPaid)}  ›</Text>
+        </Pressable>
       ))}
     </Card>
   );
@@ -313,6 +319,7 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
+  pressed: { opacity: 0.6 },
   overpaidMain: { flex: 1, marginRight: spacing.md },
   overpaidName: { fontSize: 15, color: colors.text },
   overpaidValue: { fontSize: 15, fontWeight: '700', color: colors.text },

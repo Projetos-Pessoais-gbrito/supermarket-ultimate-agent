@@ -49,7 +49,8 @@ class ProductCategorizerTest {
 
     @Test
     void storesTheCategoryChosenForEachProduct() {
-        answer(new Answer.Item(bread, ProductCategory.PADARIA), new Answer.Item(cheese, ProductCategory.LATICINIOS_E_FRIOS));
+        answer(new Answer.Item(bread, ProductCategory.PADARIA, "Nome bread"),
+                new Answer.Item(cheese, ProductCategory.LATICINIOS_E_FRIOS, "Nome cheese"));
 
         assertThat(categorizer.categorizePending()).isEqualTo(2);
 
@@ -70,7 +71,8 @@ class ProductCategorizerTest {
 
     @Test
     void ignoresIdsThatWereNotRequested() {
-        answer(new Answer.Item(9999, ProductCategory.BEBIDAS), new Answer.Item(bread, ProductCategory.PADARIA));
+        answer(new Answer.Item(9999, ProductCategory.BEBIDAS, "Nome 9999"),
+                new Answer.Item(bread, ProductCategory.PADARIA, "Nome bread"));
 
         assertThat(categorizer.categorizePending()).isEqualTo(1);
         assertThat(categoryOf(cheese)).as("unanswered products stay pending").isNull();
@@ -78,10 +80,43 @@ class ProductCategorizerTest {
 
     @Test
     void skipsCategorizedProductsOnTheNextRun() {
-        answer(new Answer.Item(bread, ProductCategory.PADARIA), new Answer.Item(cheese, ProductCategory.LATICINIOS_E_FRIOS));
+        answer(new Answer.Item(bread, ProductCategory.PADARIA, "Nome bread"),
+                new Answer.Item(cheese, ProductCategory.LATICINIOS_E_FRIOS, "Nome cheese"));
         categorizer.categorizePending();
 
         assertThat(categorizer.categorizePending()).isZero();
+    }
+
+    @Test
+    void storesAFriendlyNameWithTheCategory() {
+        answer(new Answer.Item(bread, ProductCategory.PADARIA, "  Pão francês congelado  "),
+                new Answer.Item(cheese, ProductCategory.LATICINIOS_E_FRIOS, "Queijo muçarela Tirolez fatiado"));
+
+        categorizer.categorizePending();
+
+        assertThat(displayNameOf(bread)).isEqualTo("Pão francês congelado");
+        assertThat(displayNameOf(cheese)).isEqualTo("Queijo muçarela Tirolez fatiado");
+    }
+
+    @Test
+    void fillsTheNameOfProductsCategorizedBeforeNamesExisted() {
+        jdbc.update("UPDATE products SET category = 'PADARIA' WHERE id = ?", bread);
+        answer(new Answer.Item(bread, ProductCategory.MERCEARIA, "Pão francês congelado"));
+
+        categorizer.categorizePending();
+
+        assertThat(categoryOf(bread)).as("existing category is kept").isEqualTo("PADARIA");
+        assertThat(displayNameOf(bread)).isEqualTo("Pão francês congelado");
+    }
+
+    @Test
+    void ignoresBlankNames() {
+        answer(new Answer.Item(bread, ProductCategory.PADARIA, "   "));
+
+        categorizer.categorizePending();
+
+        assertThat(categoryOf(bread)).isEqualTo("PADARIA");
+        assertThat(displayNameOf(bread)).isNull();
     }
 
     @Test
@@ -108,6 +143,10 @@ class ProductCategorizerTest {
         return jdbc.queryForObject("""
                 INSERT INTO products (normalized_name, measure_value, measure_unit)
                 VALUES (?, CAST(? AS numeric), ?) RETURNING id""", Long.class, name, measureValue, measureUnit);
+    }
+
+    private String displayNameOf(long productId) {
+        return jdbc.queryForObject("SELECT display_name FROM products WHERE id = ?", String.class, productId);
     }
 
     private String categoryOf(long productId) {

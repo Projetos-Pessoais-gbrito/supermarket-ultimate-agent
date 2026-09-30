@@ -69,6 +69,15 @@ class CategoryProductsServiceTest {
     }
 
     @Test
+    void showsTheFriendlyNameWhenTheAiWroteOne() {
+        jdbc.update("UPDATE products SET display_name = 'Café Pilão 500 g' WHERE normalized_name = 'CAFE PILAO'");
+        data.receipt(ana, assai, "2026-09-12T15:00:00Z", coffeeAtAssai, "1", "18.00");
+
+        assertThat(service.products(ana, "MERCEARIA", SEPTEMBER, 6).orElseThrow().products())
+                .extracting(Product::name).containsExactly("Café Pilão 500 g");
+    }
+
+    @Test
     void uncategorizedIncludesItemsNotMatchedToAProductYet() {
         data.receipt(ana, carrefour, "2026-09-10T15:00:00Z", unlinkedSoap, "1", "22.90");
 

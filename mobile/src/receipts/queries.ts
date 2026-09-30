@@ -55,6 +55,22 @@ export function useImportReceiptPage() {
   });
 }
 
+/** Deletes a receipt; the list and every insight change, so both are refreshed. */
+export function useDeleteReceipt() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => receiptsApi.remove(token, id),
+    onSuccess: (_result, id) => {
+      queryClient.removeQueries({ queryKey: receiptKeys.details(id) });
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
+        queryClient.invalidateQueries({ queryKey: insightKeys.all }),
+      ]);
+    },
+  });
+}
+
 export function useReceipt(id: number) {
   const token = useToken();
   return useQuery({
