@@ -27,17 +27,20 @@ class InsightController {
     private final BestDayInsightService bestDay;
     private final InflationInsightService inflation;
     private final InsightSummaryService summary;
+    private final CategoryProductsService categoryProducts;
     private final Clock clock;
 
     InsightController(SpendingInsightService spending, ProductPriceInsightService prices,
                       SavingsInsightService savings, BestDayInsightService bestDay,
-                      InflationInsightService inflation, InsightSummaryService summary, Clock clock) {
+                      InflationInsightService inflation, InsightSummaryService summary,
+                      CategoryProductsService categoryProducts, Clock clock) {
         this.spending = spending;
         this.prices = prices;
         this.savings = savings;
         this.bestDay = bestDay;
         this.inflation = inflation;
         this.summary = summary;
+        this.categoryProducts = categoryProducts;
         this.clock = clock;
     }
 
@@ -82,6 +85,14 @@ class InsightController {
     @GetMapping("/summary")
     InsightSummary summary(@AuthenticationPrincipal Jwt jwt) {
         return summary.summary(userId(jwt), currentMonth(), clock.instant());
+    }
+
+    /** Products of one category ({@code none} = not categorized yet), same months as the spending insight. */
+    @GetMapping("/categories/{category}/products")
+    CategoryProducts categoryProducts(@AuthenticationPrincipal Jwt jwt, @PathVariable String category,
+                                      @RequestParam(defaultValue = "6") @Min(1) @Max(24) int months) {
+        return categoryProducts.products(userId(jwt), category, currentMonth(), months)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown category"));
     }
 
     private YearMonth currentMonth() {
