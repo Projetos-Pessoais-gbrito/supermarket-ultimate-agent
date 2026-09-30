@@ -1,6 +1,9 @@
 spring:
   application:
     name: supermarket-agent-api
+  config:
+    # Local secrets live in the repository root .env (never committed)
+    import: optional:file:.env[.properties],optional:file:../.env[.properties]
   datasource:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:supermarket}
     username: ${POSTGRES_USER:supermarket}
@@ -26,6 +29,12 @@ management:
     health:
       probes:
         enabled: true
+
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+      access-token-ttl: 1h
 
 server:
   error:
