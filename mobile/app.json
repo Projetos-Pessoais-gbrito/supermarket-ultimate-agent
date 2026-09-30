@@ -2,7 +2,7 @@
   "expo": {
     "name": "Supermarket Agent",
     "slug": "supermarket-agent",
-    "version": "0.4.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -30,6 +30,13 @@
         {
           "cameraPermission": "Permita o acesso à câmera para escanear o QR code das suas notas fiscais.",
           "recordAudioAndroid": false
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Permita o uso do Face ID para desbloquear o app com segurança."
         }
       ]
     ],

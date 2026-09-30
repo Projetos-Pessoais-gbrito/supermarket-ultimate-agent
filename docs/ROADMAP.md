@@ -1,7 +1,7 @@
 # Roadmap
 
 Each task below maps to **one `feature/*` branch and one PR into `develop`**.
-Epics end with a `release/*` and a tag on `main`. Epics 0–3 shipped together as `v0.4.0`.
+Epics end with a `release/*` and a tag on `main`. Epics 0–3 shipped together as `v0.4.0`; Epics 4–5 and the rest of Epic 2 as `v1.0.0`.
 
 Legend: ☐ todo · ◐ in progress · ☑ done
 
@@ -36,9 +36,9 @@ Legend: ☐ todo · ◐ in progress · ☑ done
 | # | Task | Branch |
 |---|------|--------|
 | 2.1 | ☑ Users table, sign-up/login, BCrypt | `feature/user-accounts` |
-| 2.2 | ◐ JWT access + refresh tokens, Spring Security config (access tokens done; refresh tokens pending) | `feature/jwt-auth` |
+| 2.2 | ☑ JWT access + rotating refresh tokens with reuse detection, Spring Security config | `feature/jwt-auth` |
 | 2.3 | ☑ Scope all receipt queries to the logged-in user | `feature/receipt-ownership` |
-| 2.4 | ☐ Account deletion + data export (LGPD rights) | `feature/lgpd-account-rights` |
+| 2.4 | ☑ Account deletion + data export (LGPD rights) | `feature/lgpd-account-rights` |
 
 ## Epic 3 — Mobile MVP → `v0.4.0`
 
@@ -53,11 +53,11 @@ Legend: ☐ todo · ◐ in progress · ☑ done
 
 | # | Task | Branch |
 |---|------|--------|
-| 4.1 | ☐ Normalize descriptions (upper-case, accents, units: KG/G/L/ML/UN) | `feature/product-normalizer` |
-| 4.2 | ☐ Match same product across stores (GTIN first, then `pg_trgm` similarity) | `feature/product-matching` |
-| 4.3 | ☐ `AiClient` interface + Gemini implementation (rate limit, cache) | `feature/ai-client-gemini` |
-| 4.4 | ☐ AI categorization (Hortifruti, Carnes, Laticínios, Limpeza, Bebidas, ...) as async job | `feature/ai-categorization` |
-| 4.5 | ☐ Unit price calculation (R$/kg, R$/L) | `feature/unit-price` |
+| 4.1 | ☑ Normalize descriptions (upper-case, accents, units: KG/G/L/ML/UN) | `feature/product-normalizer` |
+| 4.2 | ☑ Match same product across stores (package size + `pg_trgm` similarity; SP pages have no GTIN) | `feature/product-matching` |
+| 4.3 | ☑ `AiClient` interface + Gemini implementation (rate limit, cache) | `feature/ai-client-gemini` |
+| 4.4 | ☑ AI categorization (Hortifruti, Carnes, Laticínios, Limpeza, Bebidas, ...) as async job | `feature/ai-categorization` |
+| 4.5 | ☑ Unit price calculation (R$/kg, R$/L) | `feature/unit-price` |
 
 ## Epic 5 — Insights & dashboards → `v1.0.0`
 
@@ -65,14 +65,21 @@ Computed in SQL; AI only writes the human-friendly text.
 
 | # | Insight | Branch |
 |---|---------|--------|
-| 5.1 | ☐ Monthly spending + spending by category | `feature/insight-spending` |
-| 5.2 | ☐ Price history per product (per store) | `feature/insight-price-history` |
-| 5.3 | ☐ **Best day of the month / weekday to buy** (avg unit price by day bucket) | `feature/insight-best-day` |
-| 5.4 | ☐ **Potential savings**: what you paid vs the lowest price you've seen (per store/date) | `feature/insight-savings` |
-| 5.5 | ☐ Cheapest store per product / per basket | `feature/insight-cheapest-store` |
-| 5.6 | ☐ Personal inflation index (your basket vs last month / IPCA) | `feature/insight-personal-inflation` |
-| 5.7 | ☐ Weekly AI summary ("You spent 12% more on meat; Assaí was 8% cheaper on rice") | `feature/insight-ai-summary` |
-| 5.8 | ☐ Mobile dashboards (charts, cards) | `feature/mobile-dashboards` |
+| 5.1 | ☑ Monthly spending + spending by category | `feature/insight-spending` |
+| 5.2 | ☑ Price history per product (per store) | `feature/insight-price-history` |
+| 5.3 | ☑ **Best day of the month / weekday to buy** (avg unit price by day bucket) | `feature/insight-best-day` |
+| 5.4 | ☑ **Potential savings**: what you paid vs the lowest price you've seen (per store/date) | `feature/insight-savings` |
+| 5.5 | ☑ Cheapest store per product / per basket | `feature/insight-cheapest-store` |
+| 5.6 | ☑ Personal inflation index (your basket vs last month / IPCA) | `feature/insight-personal-inflation` |
+| 5.7 | ☑ Weekly AI summary ("You spent 12% more on meat; Assaí was 8% cheaper on rice") | `feature/insight-ai-summary` |
+| 5.8 | ☑ Mobile dashboards (charts, cards) | `feature/mobile-dashboards` |
+
+## Extras delivered in `v1.0.0` (from user feedback)
+
+- ☑ Store brand names (SENDAS DISTRIBUIDORA S/A → ASSAI), chain branches combined
+- ☑ Tap a spending category to see its products
+- ☑ Unlock the app with fingerprint / Face ID
+- ☑ Clear message for key-only SEFAZ links (captcha pages)
 
 ## Backlog — Later ideas
 
@@ -85,6 +92,8 @@ Computed in SQL; AI only writes the human-friendly text.
 - **Nutritional / health view** by category (sugary drinks, ultra-processed share).
 - More states (RJ, MG, PR, ...) as new `NfceProvider`s.
 - Import NF-e (model 55, DANFE) from the XML file stores e-mail to buyers.
-- Refresh tokens so sessions last longer than one hour.
+- Import by access key: open the SEFAZ page in the app so the user solves the captcha.
+- Past receipts from Nota Fiscal Paulista (investigate what the portal exposes).
+- Best day to buy per store and per category; anonymous shared prices across users.
 - Web app (React Native Web or Next.js sharing TS types).
 - Household sharing (family members sharing one dashboard).

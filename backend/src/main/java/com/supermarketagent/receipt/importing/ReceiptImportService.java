@@ -1,13 +1,17 @@
 package com.supermarketagent.receipt.importing;
 
+import com.supermarketagent.catalog.ProductMatcher;
 import com.supermarketagent.receipt.domain.AccessKey;
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
+import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.domain.QrCodeUrlParser;
 import com.supermarketagent.receipt.persistence.ReceiptRepository;
 import com.supermarketagent.receipt.privacy.PersonalDataSanitizer;
 import com.supermarketagent.receipt.provider.FetchedReceipt;
 import com.supermarketagent.receipt.provider.NfceProvider;
 import com.supermarketagent.receipt.provider.NfceProviderRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -19,20 +23,29 @@ import org.springframework.stereotype.Service;
 @Service
 public class ReceiptImportService {
 
+    private static final Logger log = LoggerFactory.getLogger(ReceiptImportService.class);
+
     private final NfceProviderRegistry providers;
     private final ReceiptRepository receipts;
     private final ReceiptWriter writer;
+    private final ProductMatcher productMatcher;
 
-    ReceiptImportService(NfceProviderRegistry providers, ReceiptRepository receipts, ReceiptWriter writer) {
+    ReceiptImportService(NfceProviderRegistry providers, ReceiptRepository receipts, ReceiptWriter writer,
+                         ProductMatcher productMatcher) {
         this.providers = providers;
         this.receipts = receipts;
         this.writer = writer;
+        this.productMatcher = productMatcher;
     }
 
     public ReceiptImportResult importFromQrCode(long userId, String qrCodeUrl) {
         AccessKey accessKey = QrCodeUrlParser.extractAccessKey(qrCodeUrl);
         if (!accessKey.isNfce()) {
             throw new InvalidAccessKeyException("Only NFC-e (consumer receipt, model 65) can be imported");
+        }
+        // Checked before the "already imported" shortcut too, so the answer does not depend on history
+        if (QrCodeUrlParser.isKeyOnlyLink(qrCodeUrl)) {
+            throw new KeyOnlyLinkException();
         }
 
         var existing = receipts.findIdByUserIdAndAccessKey(userId, accessKey.value());
@@ -43,13 +56,25 @@ public class ReceiptImportService {
         NfceProvider provider = providers.providerFor(accessKey);
         FetchedReceipt fetched = provider.fetch(accessKey, qrCodeUrl);
         String sourceUrl = PersonalDataSanitizer.sanitizeQrCodeUrl(qrCodeUrl.strip());
+        long receiptId;
         try {
-            return new ReceiptImportResult(writer.save(userId, fetched, provider.timeZone(), sourceUrl), true);
+            receiptId = writer.save(userId, fetched, provider.timeZone(), sourceUrl);
         } catch (DataIntegrityViolationException e) {
             // The same user imported this receipt concurrently; the other request won
             return receipts.findIdByUserIdAndAccessKey(userId, accessKey.value())
                     .map(id -> new ReceiptImportResult(id, false))
                     .orElseThrow(() -> e);
+        }
+        linkProducts();
+        return new ReceiptImportResult(receiptId, true);
+    }
+
+    /** Best effort: the scheduled job links anything left behind, so a failure must not fail the import. */
+    private void linkProducts() {
+        try {
+            productMatcher.linkUnlinkedStoreProducts();
+        } catch (RuntimeException e) {
+            log.warn("Product matching after import failed; it will be retried in background", e);
         }
     }
 }

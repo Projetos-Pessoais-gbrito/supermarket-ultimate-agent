@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.supermarketagent.TestcontainersConfiguration;
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
+import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.provider.NfceProviderRegistry;
 import com.supermarketagent.receipt.support.FixtureSpProvider;
 import java.math.BigDecimal;
@@ -95,7 +96,7 @@ class ReceiptImportServiceTest {
 
     @Test
     void doesNotStoreTheBuyerDocumentFromV1QrCodes() {
-        String v1Url = SP + "?chNFe=" + KEY + "&nVersao=100&tpAmb=1&cDest=12345678909&vNF=52.92";
+        String v1Url = SP + "?chNFe=" + KEY + "&nVersao=100&tpAmb=1&cDest=12345678909&vNF=52.92&cHashQRCode=abc123";
 
         service.importFromQrCode(userId, v1Url);
 
@@ -109,6 +110,15 @@ class ReceiptImportServiceTest {
 
         assertThatThrownBy(() -> service.importFromQrCode(userId, nfeUrl))
                 .isInstanceOf(InvalidAccessKeyException.class);
+        assertThat(provider.calls()).isZero();
+    }
+
+    @Test
+    void rejectsKeyOnlyLinksWithoutCallingSefaz() {
+        String keyOnly = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe=" + KEY;
+
+        assertThatThrownBy(() -> service.importFromQrCode(userId, keyOnly))
+                .isInstanceOf(KeyOnlyLinkException.class);
         assertThat(provider.calls()).isZero();
     }
 

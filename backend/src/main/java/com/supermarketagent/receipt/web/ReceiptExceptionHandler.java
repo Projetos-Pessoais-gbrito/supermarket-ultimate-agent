@@ -1,6 +1,7 @@
 package com.supermarketagent.receipt.web;
 
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
+import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.provider.NfcePageParseException;
 import com.supermarketagent.receipt.provider.SefazUnavailableException;
 import com.supermarketagent.receipt.provider.UnsupportedStateException;
@@ -21,6 +22,14 @@ class ReceiptExceptionHandler {
     @ExceptionHandler({InvalidAccessKeyException.class, UntrustedReceiptUrlException.class})
     ProblemDetail invalidQrCode(RuntimeException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    /** {@code code} lets the app show a specific explanation instead of a generic one. */
+    @ExceptionHandler(KeyOnlyLinkException.class)
+    ProblemDetail keyOnlyLink(KeyOnlyLinkException e) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_CONTENT, e.getMessage());
+        problem.setProperty("code", "KEY_ONLY_LINK");
+        return problem;
     }
 
     @ExceptionHandler(UnsupportedStateException.class)

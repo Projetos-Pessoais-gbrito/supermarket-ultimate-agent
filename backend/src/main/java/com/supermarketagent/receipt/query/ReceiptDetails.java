@@ -17,7 +17,8 @@ public record ReceiptDetails(
         List<Item> items,
         List<Payment> payments) {
 
-    public record Store(long id, String cnpj, String name, String address) {
+    /** @param name display name (e.g. ASSAI); {@code legalName} as printed by SEFAZ */
+    public record Store(long id, String cnpj, String name, String legalName, String address) {
     }
 
     public record Item(int lineNumber, String code, String description, BigDecimal quantity, String unit,

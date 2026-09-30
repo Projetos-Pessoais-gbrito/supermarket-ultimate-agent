@@ -7,11 +7,12 @@ type ButtonProps = {
   onPress: () => void;
   loading?: boolean;
   disabled?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'danger';
 };
 
 export function Button({ title, onPress, loading = false, disabled = false, variant = 'primary' }: ButtonProps) {
-  const primary = variant === 'primary';
+  const primary = variant !== 'secondary';
+  const danger = variant === 'danger';
   return (
     <Pressable
       accessibilityRole="button"
@@ -21,7 +22,8 @@ export function Button({ title, onPress, loading = false, disabled = false, vari
       style={({ pressed }) => [
         styles.button,
         primary ? styles.buttonPrimary : styles.buttonSecondary,
-        pressed && primary && { backgroundColor: colors.primaryPressed },
+        danger && styles.buttonDanger,
+        pressed && primary && !danger && { backgroundColor: colors.primaryPressed },
         (disabled || loading) && styles.buttonDisabled,
       ]}>
       {loading ? (
@@ -68,6 +70,7 @@ const styles = StyleSheet.create({
   },
   buttonPrimary: { backgroundColor: colors.primary },
   buttonSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
+  buttonDanger: { backgroundColor: colors.danger },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.background, fontSize: 16, fontWeight: '600' },
   field: { marginBottom: spacing.md },

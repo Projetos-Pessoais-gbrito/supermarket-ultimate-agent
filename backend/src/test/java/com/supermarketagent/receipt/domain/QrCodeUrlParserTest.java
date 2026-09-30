@@ -21,7 +21,7 @@ class QrCodeUrlParserTest {
         // v2 offline (contingency) emission
         SP + "?p=" + KEY + "|2|1|29|10.00|6b4e4d4d|1|0a1b2c3d4e5f",
         // v1 layout
-        SP + "?chNFe=" + KEY + "&nVersao=100&tpAmb=1&cDest=&dhEmi=abc&vNF=10.00",
+        SP + "?chNFe=" + KEY + "&nVersao=100&tpAmb=1&cDest=&dhEmi=abc&vNF=10.00&cHashQRCode=abc123",
         // surrounding whitespace from copy/paste
         "  " + SP + "?p=" + KEY + "|2|1|1|abc  ",
     })
@@ -40,5 +40,25 @@ class QrCodeUrlParserTest {
     void rejectsUrlsWithoutAValidKey(String url) {
         assertThatThrownBy(() -> QrCodeUrlParser.extractAccessKey(url))
                 .isInstanceOf(InvalidAccessKeyException.class);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe=" + KEY,
+        SP + "?p=" + KEY,
+        SP + "?chNFe=" + KEY + "&nVersao=100",
+    })
+    void recognizesLinksThatOnlyCarryTheAccessKey(String url) {
+        assertThat(QrCodeUrlParser.isKeyOnlyLink(url)).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        SP + "?p=" + KEY + "|2|1|1|0123456789abcdef0123456789abcdef01234567",
+        SP + "?p=" + KEY + "|3|1",
+        SP + "?chNFe=" + KEY + "&nVersao=100&tpAmb=1&cHashQRCode=abc123",
+    })
+    void acceptsQrCodeLinks(String url) {
+        assertThat(QrCodeUrlParser.isKeyOnlyLink(url)).isFalse();
     }
 }

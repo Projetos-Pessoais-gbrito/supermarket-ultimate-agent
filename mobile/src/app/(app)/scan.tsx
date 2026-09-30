@@ -3,8 +3,8 @@ import { Stack, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { errorMessage } from '../../api/messages';
-import { isReceiptQrCode } from '../../receipts/qrCode';
+import { errorMessage, KEY_ONLY_LINK_MESSAGE } from '../../api/messages';
+import { isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
 import { useImportReceipt } from '../../receipts/queries';
 import { Button, ErrorBanner, TextField } from '../../ui/components';
 import { colors, spacing } from '../../ui/theme';
@@ -24,6 +24,10 @@ export default function ScanScreen() {
   function submit(qrCodeUrl: string) {
     if (!isReceiptQrCode(qrCodeUrl)) {
       setError(NOT_A_RECEIPT);
+      return;
+    }
+    if (isKeyOnlyLink(qrCodeUrl)) {
+      setError(KEY_ONLY_LINK_MESSAGE);
       return;
     }
     setError(null);
