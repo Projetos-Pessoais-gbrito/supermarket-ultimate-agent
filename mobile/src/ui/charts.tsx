@@ -21,6 +21,8 @@ export function ColumnChart({ data, highlightKey, formatValue, height = 140 }: C
   const [selectedKey, setSelectedKey] = useState(highlightKey);
   const max = Math.max(...data.map(d => d.value), 0);
   const selected = data.find(d => d.key === selectedKey) ?? data[data.length - 1];
+  // With many months, label only every n-th column (and always the highlighted one) so labels never overlap
+  const labelEvery = Math.max(1, Math.ceil(data.length / 7));
 
   return (
     <View>
@@ -53,12 +55,12 @@ export function ColumnChart({ data, highlightKey, formatValue, height = 140 }: C
         })}
       </View>
       <View style={styles.axis}>
-        {data.map(datum => (
+        {data.map((datum, index) => (
           <Text
             key={datum.key}
             style={[styles.axisLabel, datum.key === highlightKey && styles.axisLabelStrong]}
             numberOfLines={1}>
-            {datum.label}
+            {datum.key === highlightKey || (data.length - 1 - index) % labelEvery === 0 ? datum.label : ''}
           </Text>
         ))}
       </View>
