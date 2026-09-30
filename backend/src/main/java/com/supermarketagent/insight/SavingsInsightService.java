@@ -27,7 +27,8 @@ public class SavingsInsightService {
         Timestamp from = Timestamp.from(now.minus(days, ChronoUnit.DAYS));
         List<ProductSavings> all = jdbc.query("""
                 WITH items AS (
-                    SELECT p.id AS product_id, p.normalized_name AS name, s.name AS store_name, r.issued_at,
+                    SELECT p.id AS product_id, p.normalized_name AS name,
+                           COALESCE(s.display_name, s.name) AS store_name, r.issued_at,
                            i.quantity, i.unit_price, i.total_price
                     FROM receipts r
                     JOIN stores s ON s.id = r.store_id

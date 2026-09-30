@@ -57,7 +57,8 @@ class ReceiptApiTest {
         importReceipt(ana, FixtureSpProvider.QR_URL)
                 .andExpect(status().isCreated())
                 .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/api/receipts/1")))
-                .andExpect(jsonPath("$.store.name").value("SUPERMERCADO EXEMPLO LTDA"))
+                .andExpect(jsonPath("$.store.name").value("SUPERMERCADO EXEMPLO"))
+                .andExpect(jsonPath("$.store.legalName").value("SUPERMERCADO EXEMPLO LTDA"))
                 .andExpect(jsonPath("$.items.length()").value(10))
                 .andExpect(jsonPath("$.items[0].description").value("PAO FRANCES CONG KG BALCAO"))
                 .andExpect(jsonPath("$.items[0].quantity").value(0.136))
@@ -82,7 +83,7 @@ class ReceiptApiTest {
         mvc.perform(get("/api/receipts").header(HttpHeaders.AUTHORIZATION, bearer(ana)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
-                .andExpect(jsonPath("$.content[0].storeName").value("SUPERMERCADO EXEMPLO LTDA"))
+                .andExpect(jsonPath("$.content[0].storeName").value("SUPERMERCADO EXEMPLO"))
                 .andExpect(jsonPath("$.content[0].itemCount").value(10))
                 .andExpect(jsonPath("$.content[0].totalAmount").value(52.92));
     }

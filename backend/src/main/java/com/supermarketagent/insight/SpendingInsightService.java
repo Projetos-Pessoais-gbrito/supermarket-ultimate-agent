@@ -76,11 +76,13 @@ public class SpendingInsightService {
 
     private List<StoreTotal> byStore(long userId, Timestamp from, Timestamp to) {
         return jdbc.query("""
-                SELECT s.id, s.name, sum(r.total_amount) AS total, count(*) AS receipts
+                SELECT min(s.id) AS id, COALESCE(s.display_name, s.name) AS name,
+                       sum(r.total_amount) AS total, count(*) AS receipts
                 FROM receipts r JOIN stores s ON s.id = r.store_id
                 WHERE r.user_id = ? AND r.issued_at >= ? AND r.issued_at < ?
-                GROUP BY s.id, s.name
-                ORDER BY total DESC, s.name""",
+                -- Branches of the same chain (different CNPJs) count as one store
+                GROUP BY COALESCE(s.display_name, s.name)
+                ORDER BY total DESC, name""",
                 (rs, row) -> new StoreTotal(rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("total"),
                         rs.getInt("receipts")),
                 userId, from, to);

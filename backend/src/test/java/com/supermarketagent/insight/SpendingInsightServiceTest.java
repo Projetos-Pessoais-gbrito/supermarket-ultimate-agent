@@ -99,6 +99,23 @@ class SpendingInsightServiceTest {
     }
 
     @Test
+    void combinesBranchesOfTheSameChain() {
+        long branch1 = data.store("SENDAS DISTRIBUIDORA S/A", "ASSAI");
+        long branch2 = data.store("SENDAS DISTRIBUIDORA S/A", "ASSAI");
+        long riceAt1 = data.storeProduct(branch1, null, "ARROZ");
+        long riceAt2 = data.storeProduct(branch2, null, "ARROZ");
+        data.receipt(ana, branch1, "2026-09-05T15:00:00Z", riceAt1, "1", "25.00");
+        data.receipt(ana, branch2, "2026-09-06T15:00:00Z", riceAt2, "1", "26.00");
+
+        var byStore = service.spending(ana, SEPTEMBER, 1).byStore();
+
+        assertThat(byStore).hasSize(1);
+        assertThat(byStore.getFirst().storeName()).isEqualTo("ASSAI");
+        assertThat(byStore.getFirst().total()).isEqualByComparingTo("51.00");
+        assertThat(byStore.getFirst().receiptCount()).isEqualTo(2);
+    }
+
+    @Test
     void ignoresOtherUsersReceipts() {
         long bia = data.user("bia@example.com");
         data.receipt(bia, assai, "2026-09-10T15:00:00Z", rice, "10", "25.00");
