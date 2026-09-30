@@ -31,6 +31,11 @@ management:
         enabled: true
 
 app:
+  ai:
+    gemini:
+      # Free key from https://aistudio.google.com/apikey; AI features are skipped when empty
+      api-key: ${GEMINI_API_KEY:}
+      model: gemini-flash-lite-latest
   security:
     jwt:
       secret: ${JWT_SECRET:}
