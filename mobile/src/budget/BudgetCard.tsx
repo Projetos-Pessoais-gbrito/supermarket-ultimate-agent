@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import type { BudgetLine } from '../api/types';
 import { formatCurrency, formatMonthLong, formatPercent } from '../format';
 import { Button } from '../ui/components';
-import { colors, spacing } from '../ui/theme';
+import { makeStyles, spacing, useColors } from '../ui/theme';
 import { barPercent, budgetStateIcon, budgetStateText } from './budgetMath';
 import { useBudgetStatus } from './queries';
 
@@ -13,6 +13,7 @@ const WARNING_COLOR = '#B26A00';
 
 /** Dashboard card: this month's spending against the user's limits. Hidden while loading or on error. */
 export function BudgetCard() {
+  const styles = useStyles();
   const router = useRouter();
   const { data } = useBudgetStatus();
   if (!data) {
@@ -50,6 +51,8 @@ export function BudgetCard() {
 }
 
 function BudgetRow({ line }: { line: BudgetLine }) {
+  const styles = useStyles();
+  const colors = useColors();
   const fill = line.state === 'OVER' ? colors.danger : line.state === 'WARNING' ? WARNING_COLOR : colors.primary;
   const stateColor = line.state === 'OVER' ? colors.danger : line.state === 'WARNING' ? WARNING_COLOR : colors.textMuted;
   return (
@@ -83,7 +86,7 @@ function BudgetRow({ line }: { line: BudgetLine }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md, gap: spacing.md },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   muted: { fontSize: 13, color: colors.textMuted },
@@ -95,4 +98,4 @@ const styles = StyleSheet.create({
   track: { height: 10, borderRadius: 5, backgroundColor: colors.chartTrack, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 5 },
   state: { fontSize: 13, fontWeight: '600' },
-});
+}));

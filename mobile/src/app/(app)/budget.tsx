@@ -1,15 +1,17 @@
 import { Stack, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
 import { errorMessage } from '../../api/messages';
 import type { BudgetCategoryOption, BudgetSettings } from '../../api/types';
 import { formatMoneyInput, parseMoneyInput } from '../../budget/budgetMath';
 import { useBudgetCategories, useBudgetSettings, useSaveBudget } from '../../budget/queries';
 import { Button, ErrorBanner, TextField } from '../../ui/components';
-import { colors, spacing } from '../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../ui/theme';
 
 export default function BudgetScreen() {
+  const styles = useStyles();
+  const colors = useColors();
   const settings = useBudgetSettings();
   const categories = useBudgetCategories();
   const error = settings.error ?? categories.error;
@@ -33,6 +35,7 @@ export default function BudgetScreen() {
 }
 
 function BudgetForm({ settings, categories }: { settings: BudgetSettings; categories: BudgetCategoryOption[] }) {
+  const styles = useStyles();
   const router = useRouter();
   const save = useSaveBudget();
   const [overall, setOverall] = useState(formatMoneyInput(settings.overall));
@@ -99,10 +102,10 @@ function BudgetForm({ settings, categories }: { settings: BudgetSettings; catego
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   content: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, flexGrow: 1 },
   loading: { marginTop: spacing.xl },
   card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md, gap: spacing.sm },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.textMuted, lineHeight: 20, marginBottom: spacing.sm },
-});
+}));
