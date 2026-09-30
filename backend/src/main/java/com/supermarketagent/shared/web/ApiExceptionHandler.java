@@ -2,6 +2,7 @@ package com.supermarketagent.shared.web;
 
 import com.supermarketagent.auth.InvalidRefreshTokenException;
 import com.supermarketagent.user.EmailAlreadyRegisteredException;
+import com.supermarketagent.user.WrongPasswordException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,6 +22,11 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(InvalidRefreshTokenException.class)
     ProblemDetail invalidRefreshToken(InvalidRefreshTokenException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "Session expired, please log in again");
+    }
+
+    @ExceptionHandler(WrongPasswordException.class)
+    ProblemDetail wrongPassword(WrongPasswordException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, e.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
