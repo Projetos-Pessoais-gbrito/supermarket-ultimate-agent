@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.supermarketagent.TestcontainersConfiguration;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +23,13 @@ class ReceiptSchemaTest {
 
     @Autowired
     private JdbcTemplate jdbc;
+
+    // Other test classes commit data; start from empty tables (rolled back with the test transaction)
+    @BeforeEach
+    void cleanTables() {
+        jdbc.execute("TRUNCATE receipt_payments, receipt_items, receipts, store_products, products, stores, users "
+                + "RESTART IDENTITY CASCADE");
+    }
 
     @Test
     void storesAFullReceipt() {
