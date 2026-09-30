@@ -54,7 +54,11 @@ export default function SefazConsultationScreen() {
     importPage.mutate(
       { accessKey: key, html: message.html },
       {
-        onSuccess: receipt => router.replace({ pathname: '/receipts/[id]', params: { id: String(receipt.id) } }),
+        onSuccess: ({ receipt, alreadyImported }) =>
+          router.replace({
+            pathname: '/receipts/[id]',
+            params: { id: String(receipt.id), ...(alreadyImported ? { alreadyImported: '1' } : {}) },
+          }),
         onError: () => {
           importing.current = false;
         },
