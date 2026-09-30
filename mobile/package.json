@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@tanstack/react-query": "^5.104.0",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",
     "expo-linking": "~57.0.11",
@@ -14,9 +15,13 @@
     "react-native-screens": "~4.26.0"
   },
   "devDependencies": {
+    "@react-native/jest-preset": "^0.86.3",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
+    "jest": "^30.5.2",
+    "jest-expo": "^57.0.5",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -25,7 +30,11 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "test": "jest"
   },
-  "private": true
+  "private": true,
+  "jest": {
+    "preset": "jest-expo"
+  }
 }
