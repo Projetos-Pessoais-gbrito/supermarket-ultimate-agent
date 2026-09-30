@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { receiptsApi } from '../api/endpoints';
 import { useToken } from '../auth/AuthProvider';
@@ -18,6 +18,18 @@ export function useReceiptList() {
     queryFn: ({ pageParam }) => receiptsApi.list(token, pageParam, PAGE_SIZE),
     initialPageParam: 0,
     getNextPageParam: last => (last.page + 1 < last.totalPages ? last.page + 1 : undefined),
+  });
+}
+
+export function useImportReceipt() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (qrCodeUrl: string) => receiptsApi.import(token, qrCodeUrl.trim()),
+    onSuccess: receipt => {
+      queryClient.setQueryData(receiptKeys.details(receipt.id), receipt);
+      return queryClient.invalidateQueries({ queryKey: receiptKeys.list() });
+    },
   });
 }
 
