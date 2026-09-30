@@ -12,6 +12,9 @@ export function errorMessage(error: unknown): string {
   if (error.code === 'KEY_ONLY_LINK') {
     return KEY_ONLY_LINK_MESSAGE;
   }
+  if (error.code === 'TIMEOUT') {
+    return 'A consulta demorou demais para responder. Verifique a conexão e tente novamente.';
+  }
   switch (error.status) {
     case 0:
       return 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi do computador.';

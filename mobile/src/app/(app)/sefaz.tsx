@@ -1,14 +1,19 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
+import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 
 import { errorMessage } from '../../api/messages';
 import { useImportReceiptPage } from '../../receipts/queries';
+import { isSefazSpPage } from '../../receipts/sefazPage';
 import { Button, ErrorBanner } from '../../ui/components';
 import { colors, spacing } from '../../ui/theme';
 
 const CONSULTATION_URL = 'https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe=';
+
+/** A page that never finishes loading must not leave the user staring at a spinner. */
+const LOAD_TIMEOUT_MS = 30_000;
 
 // Runs after every page load: sends the page back once SEFAZ shows the receipt (its items table)
 const DETECT_RECEIPT = `
@@ -30,6 +35,7 @@ export default function SefazConsultationScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const importPage = useImportReceiptPage();
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   // The detection script fires on every load; import only once
   const importing = useRef(false);
@@ -59,7 +65,29 @@ export default function SefazConsultationScreen() {
   function tryAgain() {
     importPage.reset();
     importing.current = false;
+    setLoadFailed(false);
+    setLoading(true);
     setReloadKey(value => value + 1);
+  }
+
+  // Watchdog: SEFAZ sometimes never finishes a page load
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setLoadFailed(true);
+    }, LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [loading, reloadKey]);
+
+  function onShouldStartLoad(request: ShouldStartLoadRequest) {
+    const allowed = isSefazSpPage(request.url);
+    if (!allowed) {
+      setLoading(false);
+    }
+    return allowed;
   }
 
   return (
@@ -71,9 +99,15 @@ export default function SefazConsultationScreen() {
           Digite os caracteres da imagem e toque em Consultar. Quando a nota aparecer, ela é importada
           automaticamente.
         </Text>
-        {importPage.error && (
+        {(importPage.error || loadFailed) && (
           <>
-            <ErrorBanner message={errorMessage(importPage.error)} />
+            <ErrorBanner
+              message={
+                importPage.error
+                  ? errorMessage(importPage.error)
+                  : 'A SEFAZ não respondeu a tempo. Verifique a conexão e tente de novo.'
+              }
+            />
             <Button title="Tentar de novo" variant="secondary" onPress={tryAgain} />
           </>
         )}
@@ -85,10 +119,20 @@ export default function SefazConsultationScreen() {
           source={{ uri: CONSULTATION_URL + key }}
           injectedJavaScript={DETECT_RECEIPT}
           onMessage={onMessage}
-          onLoadStart={() => setLoading(true)}
+          onLoadStart={() => {
+            setLoadFailed(false);
+            setLoading(true);
+          }}
           onLoadEnd={() => setLoading(false)}
-          // Only SEFAZ-SP pages, never navigate the user away from the official site
-          originWhitelist={['https://www.nfce.fazenda.sp.gov.br', 'https://nfce.fazenda.sp.gov.br']}
+          onLoadProgress={({ nativeEvent }) => nativeEvent.progress >= 1 && setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setLoadFailed(true);
+          }}
+          onHttpError={() => setLoading(false)}
+          // Only SEFAZ-SP pages; other navigations are refused (and never leave a spinner behind)
+          originWhitelist={['http://*', 'https://*']}
+          onShouldStartLoadWithRequest={onShouldStartLoad}
           setSupportMultipleWindows={false}
         />
         {(loading || importPage.isPending) && (

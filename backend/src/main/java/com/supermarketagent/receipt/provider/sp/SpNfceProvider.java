@@ -12,6 +12,7 @@ import com.supermarketagent.receipt.provider.UntrustedReceiptUrlException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Set;
@@ -105,9 +106,10 @@ public class SpNfceProvider implements NfceProvider {
      * pass the same host allow-list, so a redirect can never lead outside SEFAZ-SP.
      */
     private String download(URI uri) {
+        Instant deadline = Instant.now().plus(properties.maxTotalTime());
         URI current = uri;
         for (int redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
-            Response response = requestWithRetry(current);
+            Response response = requestWithRetry(current, deadline);
             if (response.redirectTo() == null) {
                 return response.body();
             }
@@ -116,9 +118,13 @@ public class SpNfceProvider implements NfceProvider {
         throw new NfcePageParseException("SEFAZ-SP redirected too many times");
     }
 
-    private Response requestWithRetry(URI uri) {
+    private Response requestWithRetry(URI uri, Instant deadline) {
         RuntimeException lastFailure = null;
         for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+            if (Instant.now().isAfter(deadline)) {
+                throw new SefazUnavailableException("SEFAZ-SP took longer than " + properties.maxTotalTime(),
+                        lastFailure);
+            }
             try {
                 throttle.acquire();
                 return client.get().uri(uri).exchange((request, response) -> {

@@ -59,7 +59,7 @@ class CaptchaPageImportTest {
                 + "refresh_tokens, users RESTART IDENTITY CASCADE");
         // Real SP provider: parsing a user page never touches the network
         SpSefazProperties properties = new SpSefazProperties(Duration.ofSeconds(1), Duration.ofSeconds(1),
-                Duration.ZERO, 1, Duration.ZERO, "test");
+                Duration.ZERO, 1, Duration.ZERO, Duration.ofSeconds(45), "test");
         when(registry.providerFor(any())).thenReturn(new SpNfceProvider(RestClient.create(), properties));
         userId = jdbc.queryForObject(
                 "INSERT INTO users (email, password_hash) VALUES ('ana@example.com', 'hash') RETURNING id", Long.class);

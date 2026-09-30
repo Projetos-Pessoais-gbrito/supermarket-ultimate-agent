@@ -27,6 +27,7 @@ describe('apiRequest', () => {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: 'Bearer abc' },
       body: '{"qrCodeUrl":"x"}',
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -73,5 +74,31 @@ describe('error codes', () => {
 
   it('explains key-only links in Portuguese', () => {
     expect(errorMessage(new ApiError(422, 'key only', 'KEY_ONLY_LINK'))).toContain('captcha');
+  });
+});
+
+describe('timeouts', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    jest.useFakeTimers();
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('gives up on a stalled request instead of waiting forever', async () => {
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+
+    const request = apiRequest('/api/insights/spending', { timeoutMs: 1_000 });
+    jest.advanceTimersByTime(1_000);
+
+    await expect(request).rejects.toMatchObject({ status: 0, code: 'TIMEOUT' });
+  });
+
+  it('explains a timeout in Portuguese', () => {
+    expect(errorMessage(new ApiError(0, undefined, 'TIMEOUT'))).toContain('demorou demais');
   });
 });
