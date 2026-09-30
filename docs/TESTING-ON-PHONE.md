@@ -39,7 +39,14 @@ Scan the QR code shown in terminal 3:
 - **iPhone**: open the Camera app and tap the banner.
 
 The app finds the backend automatically: it uses the computer's address that Expo Go
-already knows, on port 8080.
+already knows, on port 8080. `npm start` picks your Wi-Fi/Ethernet address and skips the
+virtual adapters from WSL, Docker and Hyper-V (`172.16.x`–`172.31.x`), which phones cannot
+reach. The terminal prints the address it chose, and **Conta** shows it as "Servidor". To force
+an address, set it yourself:
+
+```powershell
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="192.168.1.129"; npm start
+```
 
 ## Try it
 
@@ -54,7 +61,7 @@ No receipt at hand? Paste the link of a receipt QR code in **Ou cole o link do Q
 
 | Message / symptom | Fix |
 |-------------------|-----|
-| "Não foi possível conectar ao servidor…" | Backend not running, firewall blocking port 8080, or phone on another network (guest Wi-Fi, mobile data). |
+| "Sem conexão com o servidor…" | Backend not running, firewall blocking port 8080, or phone on another network (guest Wi-Fi, mobile data). Check that **Conta → Servidor** shows your computer's Wi-Fi address (not `172.x`). |
 | Expo Go says the project is incompatible | Update Expo Go: it only supports the latest SDK (57). |
 | Phone can't reach even the dev server | Some routers isolate devices. Use `npm start -- --tunnel`, and expose the backend too (e.g. `ngrok http 8080`), then start with `EXPO_PUBLIC_API_URL=https://<ngrok-url> npm start -- --tunnel`. |
 | "Não foi possível ler essa nota na SEFAZ…" | Only São Paulo receipts are supported for now. |
