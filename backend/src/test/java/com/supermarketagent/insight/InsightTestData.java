@@ -32,6 +32,13 @@ final class InsightTestData {
                 Long.class, cnpj, name);
     }
 
+    long store(String legalName, String displayName) {
+        String cnpj = String.format("%014d", sequence.incrementAndGet());
+        return jdbc.queryForObject(
+                "INSERT INTO stores (cnpj, name, display_name, state_code) VALUES (?, ?, ?, '35') RETURNING id",
+                Long.class, cnpj, legalName, displayName);
+    }
+
     /** @param category enum name or null */
     long product(String name, String category) {
         return jdbc.queryForObject(

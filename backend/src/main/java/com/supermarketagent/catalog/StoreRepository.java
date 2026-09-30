@@ -11,11 +11,12 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
 
     /** Inserts the store or refreshes its name/address, safely under concurrent imports. */
     @Query(value = """
-            INSERT INTO stores (cnpj, name, address, state_code)
-            VALUES (:cnpj, :name, :address, :stateCode)
+            INSERT INTO stores (cnpj, name, display_name, address, state_code)
+            VALUES (:cnpj, :name, :displayName, :address, :stateCode)
             ON CONFLICT (cnpj) DO UPDATE
-                SET name = EXCLUDED.name, address = EXCLUDED.address, updated_at = now()
+                SET name = EXCLUDED.name, display_name = EXCLUDED.display_name, address = EXCLUDED.address,
+                    updated_at = now()
             RETURNING id""", nativeQuery = true)
-    long upsert(@Param("cnpj") String cnpj, @Param("name") String name,
+    long upsert(@Param("cnpj") String cnpj, @Param("name") String name, @Param("displayName") String displayName,
                 @Param("address") String address, @Param("stateCode") String stateCode);
 }

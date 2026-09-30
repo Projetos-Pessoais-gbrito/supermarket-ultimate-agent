@@ -16,7 +16,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     @Query(value = """
             select new com.supermarketagent.receipt.query.ReceiptSummary(
-                r.id, s.name, r.issuedAt, r.totalAmount, size(r.items))
+                r.id, coalesce(s.displayName, s.name), r.issuedAt, r.totalAmount, size(r.items))
             from Receipt r join r.store s
             where r.userId = :userId
             order by r.issuedAt desc, r.id desc""",

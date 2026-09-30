@@ -57,7 +57,7 @@ public class ProductPriceInsightService {
     /** Every price the user paid for the product, oldest first; empty if they never bought it. */
     public Optional<PriceHistory> history(long userId, long productId) {
         List<PricePoint> prices = jdbc.query("""
-                SELECT r.issued_at, s.id AS store_id, s.name AS store_name, i.unit_price, i.unit
+                SELECT r.issued_at, s.id AS store_id, COALESCE(s.display_name, s.name) AS store_name, i.unit_price, i.unit
                 FROM receipts r
                 JOIN stores s ON s.id = r.store_id
                 JOIN receipt_items i ON i.receipt_id = r.id
