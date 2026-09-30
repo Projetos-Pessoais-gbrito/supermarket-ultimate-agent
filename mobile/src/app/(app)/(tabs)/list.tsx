@@ -23,10 +23,11 @@ import {
   suggestionRhythm,
 } from '../../../shopping/text';
 import { Button, ErrorBanner, TextField } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 /** The user's shopping list, what is probably running out, and notable price changes. */
 export default function ShoppingListScreen() {
+  const styles = useStyles();
   const list = useShoppingList();
   const suggestions = useShoppingSuggestions();
   const alerts = usePriceAlerts();
@@ -61,6 +62,8 @@ function listErrorMessage(error: unknown): string {
 }
 
 function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: Error | null; loading: boolean }) {
+  const styles = useStyles();
+  const colors = useColors();
   const [name, setName] = useState('');
   const add = useAddToList();
   const toggle = useToggleItem();
@@ -120,6 +123,8 @@ function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: 
 }
 
 function ListRow({ item, onToggle, onRemove }: { item: ShoppingListItem; onToggle: () => void; onRemove: () => void }) {
+  const styles = useStyles();
+  const colors = useColors();
   const router = useRouter();
   const productId = item.productId;
   const quantity = formatListQuantity(item.quantity);
@@ -164,6 +169,8 @@ function Suggestions({
   error: Error | null;
   loading: boolean;
 }) {
+  const styles = useStyles();
+  const colors = useColors();
   const router = useRouter();
   const add = useAddToList();
   return (
@@ -231,6 +238,8 @@ function Suggestions({
 }
 
 function Alerts({ items, error, loading }: { items?: PriceAlert[]; error: Error | null; loading: boolean }) {
+  const styles = useStyles();
+  const colors = useColors();
   const router = useRouter();
   return (
     <View style={styles.section}>
@@ -271,7 +280,7 @@ function Alerts({ items, error, loading }: { items?: PriceAlert[]; error: Error 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   content: { padding: spacing.md, gap: spacing.lg },
   section: { gap: spacing.sm },
@@ -300,4 +309,4 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13, color: colors.textMuted },
   highlight: { fontSize: 13, fontWeight: '600', color: colors.primary },
   inList: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
-});
+}));

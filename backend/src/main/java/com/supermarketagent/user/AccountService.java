@@ -39,8 +39,20 @@ public class AccountService {
         var details = receipts.findIdsByUserId(userId).stream()
                 .map(receiptId -> receiptQueries.details(userId, receiptId))
                 .toList();
+        var shoppingList = jdbc.query("""
+                SELECT name, quantity, checked, created_at FROM shopping_list_items
+                WHERE user_id = ? ORDER BY created_at, id""",
+                (rs, row) -> new AccountExport.ShoppingListEntry(rs.getString("name"), rs.getBigDecimal("quantity"),
+                        rs.getBoolean("checked"), rs.getTimestamp("created_at").toInstant()),
+                userId);
+        var budgets = jdbc.query("""
+                SELECT category, monthly_limit, updated_at FROM budgets
+                WHERE user_id = ? ORDER BY category NULLS FIRST""",
+                (rs, row) -> new AccountExport.Budget(rs.getString("category"), rs.getBigDecimal("monthly_limit"),
+                        rs.getTimestamp("updated_at").toInstant()),
+                userId);
         return new AccountExport(clock.instant(), new AccountExport.Account(userId, user.getEmail(), createdAt),
-                details);
+                details, shoppingList, budgets);
     }
 
     /**
