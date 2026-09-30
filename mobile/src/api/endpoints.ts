@@ -1,4 +1,4 @@
-import { apiRequest, IMPORT_TIMEOUT_MS } from './client';
+import { apiRequest, apiRequestWithStatus, IMPORT_TIMEOUT_MS } from './client';
 import type {
   BestDayInsight,
   CategoryProducts,
@@ -33,22 +33,30 @@ export const accountApi = {
     apiRequest<void>('/api/me', { method: 'DELETE', body: { password }, token }),
 };
 
+/** 201 = imported now; 200 = the user already had this receipt. */
+export type ImportResult = { receipt: ReceiptDetails; alreadyImported: boolean };
+
+const toImportResult = ({ data, status }: { data: ReceiptDetails; status: number }): ImportResult => ({
+  receipt: data,
+  alreadyImported: status === 200,
+});
+
 export const receiptsApi = {
   import: (token: string, qrCodeUrl: string) =>
-    apiRequest<ReceiptDetails>('/api/receipts', {
+    apiRequestWithStatus<ReceiptDetails>('/api/receipts', {
       method: 'POST',
       body: { qrCodeUrl },
       token,
       timeoutMs: IMPORT_TIMEOUT_MS,
-    }),
+    }).then(toImportResult),
   /** SEFAZ page the user opened in the app after solving the captcha (key-only links). */
   importPage: (token: string, accessKey: string, html: string) =>
-    apiRequest<ReceiptDetails>('/api/receipts/page', {
+    apiRequestWithStatus<ReceiptDetails>('/api/receipts/page', {
       method: 'POST',
       body: { accessKey, html },
       token,
       timeoutMs: IMPORT_TIMEOUT_MS,
-    }),
+    }).then(toImportResult),
   list: (token: string, page = 0, size = 20) =>
     apiRequest<Page<ReceiptSummary>>(`/api/receipts?page=${page}&size=${size}`, { token }),
   details: (token: string, id: number) => apiRequest<ReceiptDetails>(`/api/receipts/${id}`, { token }),
