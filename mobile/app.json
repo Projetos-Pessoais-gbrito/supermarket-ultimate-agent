@@ -38,6 +38,14 @@
         {
           "faceIDPermission": "Permita o uso do Face ID para desbloquear o app com segurança."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita o acesso às fotos para importar notas fiscais a partir de imagens.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
       ]
     ],
     "scheme": "supermarketagent",
