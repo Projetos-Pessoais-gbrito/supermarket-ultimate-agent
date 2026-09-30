@@ -50,12 +50,16 @@ public class ReceiptImportService {
             throw new KeyOnlyLinkException();
         }
 
+        // Validate the link itself before the "already imported" shortcut, so a malformed link is
+        // always rejected instead of silently opening an existing receipt
+        NfceProvider provider = providers.providerFor(accessKey);
+        provider.validateQrCodeUrl(qrCodeUrl);
+
         var existing = receipts.findIdByUserIdAndAccessKey(userId, accessKey.value());
         if (existing.isPresent()) {
             return new ReceiptImportResult(existing.get(), false);
         }
 
-        NfceProvider provider = providers.providerFor(accessKey);
         FetchedReceipt fetched = provider.fetch(accessKey, qrCodeUrl);
         String sourceUrl = PersonalDataSanitizer.sanitizeQrCodeUrl(qrCodeUrl.strip());
         return save(userId, accessKey, fetched, provider, sourceUrl, ReceiptSource.QR_CODE);
