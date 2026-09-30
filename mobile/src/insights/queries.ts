@@ -12,6 +12,7 @@ export const insightKeys = {
   inflation: () => [...insightKeys.all, 'inflation'] as const,
   summary: () => [...insightKeys.all, 'summary'] as const,
   category: (category: string, period: Period) => [...insightKeys.all, 'category', category, period] as const,
+  priceHistory: (productId: number) => [...insightKeys.all, 'price-history', productId] as const,
 };
 
 export function useSpending(period: Period) {
@@ -53,5 +54,14 @@ export function useCategoryProducts(category: string, period: Period) {
   return useQuery({
     queryKey: insightKeys.category(category, period),
     queryFn: () => insightsApi.categoryProducts(token, category, period),
+  });
+}
+
+export function usePriceHistory(productId: number) {
+  const token = useToken();
+  return useQuery({
+    queryKey: insightKeys.priceHistory(productId),
+    queryFn: () => insightsApi.priceHistory(token, productId),
+    enabled: Number.isFinite(productId),
   });
 }
