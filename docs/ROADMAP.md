@@ -13,7 +13,7 @@ Legend: ☐ todo · ◐ in progress · ☑ done
 |---|------|--------|
 | 0.1 | ◐ Repo conventions, ADRs, roadmap, README | `feature/repo-foundation` |
 | 0.2 | ☐ Docker Compose with PostgreSQL 16 + `.env.example` | `feature/local-infra` |
-| 0.3 | ☐ Spring Boot 3 / Java 21 skeleton, health endpoint, Flyway, Testcontainers | `feature/backend-skeleton` |
+| 0.3 | ☐ Spring Boot 4 / Java 21 skeleton, health endpoint, Flyway, Testcontainers | `feature/backend-skeleton` |
 | 0.4 | ☐ Expo + TypeScript skeleton, Expo Router, ESLint/Prettier | `feature/mobile-skeleton` |
 | 0.5 | ☐ GitHub Actions CI (backend build/test, mobile lint/typecheck) | `feature/ci` |
 

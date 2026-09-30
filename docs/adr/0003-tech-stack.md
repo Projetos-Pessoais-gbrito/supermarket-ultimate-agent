@@ -7,7 +7,7 @@
 
 | Layer        | Choice                                                      |
 |--------------|-------------------------------------------------------------|
-| Backend      | Java 21 (LTS) + Spring Boot 3, Maven wrapper                |
+| Backend      | Java 21 (LTS) + Spring Boot 4, Maven wrapper                |
 | Persistence  | PostgreSQL 16, Spring Data JPA, Flyway migrations           |
 | HTML parsing | jsoup                                                       |
 | Auth         | Spring Security + JWT (stateless)                           |
@@ -22,6 +22,6 @@
 ## Rationale
 - **Expo + TypeScript** builds iOS and Android from one codebase, ships a QR/barcode
   scanner, and gives a path to the future web app (React Native Web, shared TS types).
-- **Java 21** is the current LTS supported by Spring Boot 3.
+- **Java 21** is an LTS release fully supported by Spring Boot 4 (the current major version).
 - The backend is a **modular monolith** with one package per feature (`receipt`,
   `catalog`, `insight`, `user`). It is simple to run and can be split later if needed.

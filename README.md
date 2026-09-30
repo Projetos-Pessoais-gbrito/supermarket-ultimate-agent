@@ -11,7 +11,7 @@ have saved, the cheapest store for each product, and more.
 
 | Path       | Content                                  |
 |------------|------------------------------------------|
-| `backend/` | Java 21 + Spring Boot 3 REST API         |
+| `backend/` | Java 21 + Spring Boot 4 REST API         |
 | `mobile/`  | React Native + Expo + TypeScript app     |
 | `docs/`    | Architecture, roadmap and ADRs           |
 
