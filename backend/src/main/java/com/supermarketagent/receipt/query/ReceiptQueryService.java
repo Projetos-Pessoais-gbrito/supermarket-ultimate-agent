@@ -11,8 +11,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +25,6 @@ public class ReceiptQueryService {
     ReceiptQueryService(ReceiptRepository receipts, ProductRepository products) {
         this.receipts = receipts;
         this.products = products;
-    }
-
-    public Page<ReceiptSummary> list(long userId, int page, int size) {
-        return receipts.findSummariesByUserId(userId, PageRequest.of(page, size));
     }
 
     public ReceiptDetails details(long userId, long receiptId) {

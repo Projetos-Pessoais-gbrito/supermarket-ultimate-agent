@@ -1,6 +1,7 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { receiptsApi } from '../api/endpoints';
+import type { ReceiptFilters } from '../api/types';
 import { useToken } from '../auth/AuthProvider';
 import { insightKeys } from '../insights/queries';
 
@@ -9,14 +10,17 @@ const PAGE_SIZE = 20;
 export const receiptKeys = {
   all: ['receipts'] as const,
   list: () => [...receiptKeys.all, 'list'] as const,
+  filtered: (filters: ReceiptFilters) => [...receiptKeys.list(), filters] as const,
   details: (id: number) => [...receiptKeys.all, 'details', id] as const,
 };
 
-export function useReceiptList() {
+export function useReceiptList(filters: ReceiptFilters = {}) {
   const token = useToken();
   return useInfiniteQuery({
-    queryKey: receiptKeys.list(),
-    queryFn: ({ pageParam }) => receiptsApi.list(token, pageParam, PAGE_SIZE),
+    queryKey: receiptKeys.filtered(filters),
+    queryFn: ({ pageParam }) => receiptsApi.list(token, pageParam, PAGE_SIZE, filters),
+    // Keeps the list and filter options on screen while another filter loads
+    placeholderData: keepPreviousData,
     initialPageParam: 0,
     getNextPageParam: last => (last.page + 1 < last.totalPages ? last.page + 1 : undefined),
   });

@@ -1,42 +1,170 @@
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { errorMessage } from '../../../api/messages';
 import type { ReceiptSummary } from '../../../api/types';
 import { formatCurrency, formatDateTime } from '../../../format';
+import { groupByMonth, monthChipLabel, monthTitle, type ReceiptListRow } from '../../../receipts/monthGroups';
 import { useReceiptList } from '../../../receipts/queries';
 import { Button, ErrorBanner } from '../../../ui/components';
 import { makeStyles, spacing, useColors } from '../../../ui/theme';
+
+const SEARCH_DELAY_MS = 350;
 
 export default function ReceiptListScreen() {
   const colors = useColors();
   const styles = useStyles();
   const router = useRouter();
+  const [text, setText] = useState('');
+  const [q, setQ] = useState('');
+  const [store, setStore] = useState<string | undefined>();
+  const [month, setMonth] = useState<string | undefined>();
+  useEffect(() => {
+    // Search once the user pauses typing, not on every key
+    const timer = setTimeout(() => setQ(text.trim()), SEARCH_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [text]);
+
   const { data, error, isPending, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
-    useReceiptList();
+    useReceiptList({ q, store, month });
   const receipts = data?.pages.flatMap(page => page.content) ?? [];
+  const first = data?.pages[0];
+  const rows = groupByMonth(receipts, first?.monthlyTotals ?? []);
+  const filtering = q !== '' || store !== undefined || month !== undefined;
+  const hasReceipts = (first?.months.length ?? 0) > 0;
+
+  const clearFilters = () => {
+    setText('');
+    setQ('');
+    setStore(undefined);
+    setMonth(undefined);
+  };
 
   return (
     <View style={styles.container}>
+      {(hasReceipts || filtering) && (
+        <View style={styles.filters}>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="Buscar produto nas notas"
+            placeholderTextColor={colors.textMuted}
+            accessibilityLabel="Buscar produto nas notas"
+            returnKeyType="search"
+            onSubmitEditing={() => setQ(text.trim())}
+            clearButtonMode="while-editing"
+            maxLength={100}
+            style={styles.search}
+          />
+          <ChipRow
+            label="Mercado"
+            options={first?.stores ?? []}
+            selected={store}
+            onSelect={setStore}
+            optionLabel={option => option}
+          />
+          <ChipRow
+            label="Mês"
+            options={first?.months ?? []}
+            selected={month}
+            onSelect={setMonth}
+            optionLabel={monthChipLabel}
+          />
+        </View>
+      )}
       {isPending ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : (
         <FlatList
-          data={receipts}
-          keyExtractor={receipt => String(receipt.id)}
-          renderItem={({ item }) => <ReceiptRow receipt={item} />}
+          data={rows}
+          keyExtractor={row => row.key}
+          renderItem={({ item }) => <Row row={item} />}
           contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+          keyboardShouldPersistTaps="handled"
+          refreshControl={<RefreshControl refreshing={isRefetching && !isFetchingNextPage} onRefresh={refetch} />}
           onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={error ? <ErrorBanner message={errorMessage(error)} /> : null}
-          ListEmptyComponent={error ? null : <EmptyState />}
+          ListEmptyComponent={error ? null : filtering ? <NoMatches onClear={clearFilters} /> : <EmptyState />}
           ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : null}
         />
       )}
       <View style={styles.footer}>
         <Button title="Escanear nota" onPress={() => router.push('/scan')} />
       </View>
+    </View>
+  );
+}
+
+function ChipRow({
+  label,
+  options,
+  selected,
+  onSelect,
+  optionLabel,
+}: {
+  label: string;
+  options: string[];
+  selected: string | undefined;
+  onSelect: (value: string | undefined) => void;
+  optionLabel: (option: string) => string;
+}) {
+  const styles = useStyles();
+  if (options.length < 2 && selected === undefined) {
+    return null;
+  }
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.chips}
+      keyboardShouldPersistTaps="handled">
+      <Text style={styles.chipGroup}>{label}:</Text>
+      {options.map(option => {
+        const active = option === selected;
+        return (
+          <Pressable
+            key={option}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={`${label} ${optionLabel(option)}${active ? ', toque para remover o filtro' : ''}`}
+            onPress={() => onSelect(active ? undefined : option)}
+            style={[styles.chip, active && styles.chipActive]}>
+            <Text style={[styles.chipText, active && styles.chipTextActive]}>
+              {active ? '✓ ' : ''}
+              {optionLabel(option)}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function Row({ row }: { row: ReceiptListRow }) {
+  const styles = useStyles();
+  if (row.type === 'receipt') {
+    return <ReceiptRow receipt={row.receipt} />;
+  }
+  return (
+    <View style={styles.monthHeader} accessibilityRole="header">
+      <Text style={styles.monthTitle}>{monthTitle(row.month)}</Text>
+      {row.total !== null && (
+        <Text style={styles.monthTotal}>
+          {formatCurrency(row.total)} · {row.receiptCount} {row.receiptCount === 1 ? 'nota' : 'notas'}
+        </Text>
+      )}
     </View>
   );
 }
@@ -75,10 +203,64 @@ function EmptyState() {
   );
 }
 
+function NoMatches({ onClear }: { onClear: () => void }) {
+  const styles = useStyles();
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyTitle}>Nenhuma nota encontrada</Text>
+      <Text style={styles.emptyText}>Nenhuma nota combina com a busca e os filtros escolhidos.</Text>
+      <View style={styles.clear}>
+        <Button title="Limpar filtros" variant="secondary" onPress={onClear} />
+      </View>
+    </View>
+  );
+}
+
 const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
+  filters: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    gap: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  search: {
+    marginHorizontal: spacing.md,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  chips: { paddingHorizontal: spacing.md, gap: spacing.sm, alignItems: 'center' },
+  chipGroup: { fontSize: 13, color: colors.textMuted },
+  chip: {
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 14, color: colors.text },
+  chipTextActive: { color: colors.background, fontWeight: '600' },
   list: { padding: spacing.md, gap: spacing.sm, flexGrow: 1 },
+  monthHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    marginTop: spacing.sm,
+  },
+  monthTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
+  monthTotal: { fontSize: 14, color: colors.textMuted },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -94,6 +276,7 @@ const useStyles = makeStyles(colors => ({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   emptyText: { fontSize: 15, color: colors.textMuted, textAlign: 'center' },
+  clear: { marginTop: spacing.md, alignSelf: 'stretch' },
   footer: {
     padding: spacing.md,
     paddingBottom: spacing.lg,
