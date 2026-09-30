@@ -28,6 +28,8 @@ export function errorMessage(error: unknown): string {
       return 'Nota fiscal não encontrada.';
     case 409:
       return 'Este e-mail já está cadastrado.';
+    case 429:
+      return 'Muitas tentativas. Tente de novo em alguns minutos.';
     case 422:
       return 'Não foi possível ler essa nota na SEFAZ. Por enquanto só notas de São Paulo são suportadas.';
     case 503:
