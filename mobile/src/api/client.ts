@@ -25,10 +25,15 @@ type RequestOptions = {
   timeoutMs?: number;
 };
 
-export async function apiRequest<T>(
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return (await apiRequestWithStatus<T>(path, options)).data;
+}
+
+/** Like {@link apiRequest}, also returning the HTTP status (e.g. 201 created vs 200 already existed). */
+export async function apiRequestWithStatus<T>(
   path: string,
   { method = 'GET', body, token, timeoutMs = DEFAULT_TIMEOUT_MS }: RequestOptions = {},
-): Promise<T> {
+): Promise<{ data: T; status: number }> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
@@ -57,9 +62,9 @@ export async function apiRequest<T>(
       throw new ApiError(response.status, problem?.detail ?? problem?.title, problem?.code);
     }
     if (response.status === 204) {
-      return undefined as T;
+      return { data: undefined as T, status: 204 };
     }
-    return (await response.json()) as T;
+    return { data: (await response.json()) as T, status: response.status };
   } finally {
     clearTimeout(timer);
   }

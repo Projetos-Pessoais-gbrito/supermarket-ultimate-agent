@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from './client';
+import { ApiError, apiRequest, apiRequestWithStatus } from './client';
 import { errorMessage } from './messages';
 
 jest.mock('../config', () => ({ API_BASE_URL: 'http://api.test' }));
@@ -39,6 +39,15 @@ describe('apiRequest', () => {
     );
   });
 
+  it('can report the status, e.g. 200 for a receipt that already existed', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 7 }));
+
+    await expect(apiRequestWithStatus('/api/receipts', { method: 'POST', body: {} })).resolves.toEqual({
+      data: { id: 7 },
+      status: 200,
+    });
+  });
+
   it('reports an unreachable backend as status 0', async () => {
     fetchMock.mockRejectedValue(new TypeError('Network request failed'));
 
@@ -47,8 +56,8 @@ describe('apiRequest', () => {
 });
 
 describe('errorMessage', () => {
-  it('explains how to fix an unreachable backend', () => {
-    expect(errorMessage(new ApiError(0))).toContain('mesma rede Wi-Fi');
+  it('explains an unreachable server in user terms', () => {
+    expect(errorMessage(new ApiError(0))).toBe('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
   });
 
   it('explains that SEFAZ is down', () => {

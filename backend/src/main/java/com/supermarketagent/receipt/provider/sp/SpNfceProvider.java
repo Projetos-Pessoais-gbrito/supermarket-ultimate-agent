@@ -67,6 +67,11 @@ public class SpNfceProvider implements NfceProvider {
     }
 
     @Override
+    public void validateQrCodeUrl(String qrCodeUrl) {
+        trustedUri(qrCodeUrl);
+    }
+
+    @Override
     public FetchedReceipt parseUserPage(AccessKey accessKey, String html) {
         String sanitized = PersonalDataSanitizer.sanitizeHtml(html);
         ParsedReceipt receipt = parser.parse(sanitized);

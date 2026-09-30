@@ -17,7 +17,7 @@ export function errorMessage(error: unknown): string {
   }
   switch (error.status) {
     case 0:
-      return 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi do computador.';
+      return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
     case 400:
       return 'Esse QR code não é de uma nota fiscal válida.';
     case 401:

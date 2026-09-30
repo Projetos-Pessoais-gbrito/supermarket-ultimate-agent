@@ -36,7 +36,11 @@ export default function ScanScreen() {
     }
     setError(null);
     importReceipt.mutate(qrCodeUrl, {
-      onSuccess: receipt => router.replace(`/receipts/${receipt.id}`),
+      onSuccess: ({ receipt, alreadyImported }) =>
+        router.replace({
+          pathname: '/receipts/[id]',
+          params: { id: String(receipt.id), ...(alreadyImported ? { alreadyImported: '1' } : {}) },
+        }),
       onError: e => setError(errorMessage(e)),
     });
   }

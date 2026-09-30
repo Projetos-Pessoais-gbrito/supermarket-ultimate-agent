@@ -11,7 +11,7 @@ import { Button, ErrorBanner } from '../../../ui/components';
 import { colors, spacing } from '../../../ui/theme';
 
 export default function ReceiptDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, alreadyImported } = useLocalSearchParams<{ id: string; alreadyImported?: string }>();
   const { data: receipt, error, isPending } = useReceipt(Number(id));
 
   return (
@@ -20,7 +20,7 @@ export default function ReceiptDetailsScreen() {
       {isPending ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : receipt ? (
-        <ReceiptContent receipt={receipt} />
+        <ReceiptContent receipt={receipt} alreadyImported={alreadyImported === '1'} />
       ) : (
         <View style={styles.content}>
           <ErrorBanner message={errorMessage(error)} />
@@ -30,11 +30,16 @@ export default function ReceiptDetailsScreen() {
   );
 }
 
-function ReceiptContent({ receipt }: { receipt: ReceiptDetails }) {
+function ReceiptContent({ receipt, alreadyImported }: { receipt: ReceiptDetails; alreadyImported: boolean }) {
   const router = useRouter();
   const groups = groupReceiptItems(receipt.items);
   return (
     <ScrollView contentContainerStyle={styles.content}>
+      {alreadyImported && (
+        <View accessibilityRole="alert" style={styles.notice}>
+          <Text style={styles.noticeText}>Essa nota já estava na sua lista. Nada foi importado de novo.</Text>
+        </View>
+      )}
       <View style={styles.card}>
         <Text style={styles.store}>{receipt.store.name}</Text>
         {receipt.store.legalName !== receipt.store.name && (
@@ -145,6 +150,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
   content: { padding: spacing.md, gap: spacing.md },
+  notice: { backgroundColor: colors.chartTrack, borderRadius: 12, padding: spacing.md },
+  noticeText: { fontSize: 14, color: colors.text },
   card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md },
   store: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: spacing.xs },
   muted: { fontSize: 13, color: colors.textMuted },

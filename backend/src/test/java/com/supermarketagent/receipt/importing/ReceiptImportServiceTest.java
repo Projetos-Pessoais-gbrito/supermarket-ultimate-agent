@@ -9,8 +9,12 @@ import com.supermarketagent.TestcontainersConfiguration;
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
 import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.provider.NfceProviderRegistry;
+import com.supermarketagent.receipt.provider.UntrustedReceiptUrlException;
+import com.supermarketagent.receipt.provider.sp.SpNfceProvider;
+import com.supermarketagent.receipt.provider.sp.SpSefazProperties;
 import com.supermarketagent.receipt.support.FixtureSpProvider;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.web.client.RestClient;
 
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
@@ -120,6 +125,20 @@ class ReceiptImportServiceTest {
         assertThatThrownBy(() -> service.importFromQrCode(userId, keyOnly))
                 .isInstanceOf(KeyOnlyLinkException.class);
         assertThat(provider.calls()).isZero();
+    }
+
+    @Test
+    void rejectsAMalformedLinkEvenForAReceiptAlreadyImported() {
+        service.importFromQrCode(userId, QR_URL);
+        // Real SP link validation (no network is used to validate)
+        SpSefazProperties properties = new SpSefazProperties(Duration.ofSeconds(1), Duration.ofSeconds(1),
+                Duration.ZERO, 1, Duration.ZERO, Duration.ofSeconds(45), "test");
+        when(registry.providerFor(any())).thenReturn(new SpNfceProvider(RestClient.create(), properties));
+        String malformed = "https://whttps://www.nfce.fazenda.sp.gov.br/qrcode?p=" + KEY
+                + "|2|1|1|0123456789abcdef0123456789abcdef01234567";
+
+        assertThatThrownBy(() -> service.importFromQrCode(userId, malformed))
+                .isInstanceOf(UntrustedReceiptUrlException.class);
     }
 
     private long insertUser(String email) {
