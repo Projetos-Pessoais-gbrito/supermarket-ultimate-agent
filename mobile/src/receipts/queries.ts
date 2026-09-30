@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tansta
 
 import { receiptsApi } from '../api/endpoints';
 import { useToken } from '../auth/AuthProvider';
+import { insightKeys } from '../insights/queries';
 
 const PAGE_SIZE = 20;
 
@@ -28,7 +29,11 @@ export function useImportReceipt() {
     mutationFn: (qrCodeUrl: string) => receiptsApi.import(token, qrCodeUrl.trim()),
     onSuccess: receipt => {
       queryClient.setQueryData(receiptKeys.details(receipt.id), receipt);
-      return queryClient.invalidateQueries({ queryKey: receiptKeys.list() });
+      // A new receipt changes every insight
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
+        queryClient.invalidateQueries({ queryKey: insightKeys.all }),
+      ]);
     },
   });
 }
