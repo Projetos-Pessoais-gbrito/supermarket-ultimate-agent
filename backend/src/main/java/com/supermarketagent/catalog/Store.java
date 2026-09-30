@@ -26,6 +26,10 @@ public class Store {
 
     private String address;
 
+    /** Name shoppers know, e.g. "ASSAI" for "SENDAS DISTRIBUIDORA S/A"; see {@link StoreNames}. */
+    @Column(name = "display_name")
+    private String displayName;
+
     @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "state_code", nullable = false, length = 2)
     private String stateCode;
@@ -43,6 +47,11 @@ public class Store {
 
     public String getName() {
         return name;
+    }
+
+    /** Brand or friendly name, falling back to the legal name for stores not backfilled yet. */
+    public String getDisplayName() {
+        return displayName != null ? displayName : name;
     }
 
     public String getAddress() {
