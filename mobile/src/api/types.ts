@@ -3,7 +3,11 @@
 export type TokenResponse = {
   accessToken: string;
   tokenType: 'Bearer';
+  /** seconds */
   expiresIn: number;
+  refreshToken: string;
+  /** seconds */
+  refreshExpiresIn: number;
 };
 
 export type Me = {
