@@ -1,6 +1,8 @@
 import { apiRequest } from './client';
 import type {
   BestDayInsight,
+  InflationInsight,
+  InsightSummary,
   Me,
   Page,
   ReceiptDetails,
@@ -33,4 +35,7 @@ export const insightsApi = {
     apiRequest<SpendingInsight>(`/api/insights/spending?months=${months}`, { token }),
   savings: (token: string, days = 90) => apiRequest<SavingsInsight>(`/api/insights/savings?days=${days}`, { token }),
   bestDay: (token: string) => apiRequest<BestDayInsight>('/api/insights/best-day', { token }),
+  inflation: (token: string, months = 6) =>
+    apiRequest<InflationInsight>(`/api/insights/inflation?months=${months}`, { token }),
+  summary: (token: string) => apiRequest<InsightSummary>('/api/insights/summary', { token }),
 };

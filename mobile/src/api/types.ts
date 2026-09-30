@@ -95,3 +95,10 @@ export type BestDayInsight = {
   bestWeekday: BestDayGroup | null;
   byWeekday: BestDayGroup[];
 };
+
+export type InflationInsight = {
+  monthly: { month: string; changePercent: number | null; productsCompared: number }[];
+  changes: { productId: number; name: string; previousPrice: number; currentPrice: number; changePercent: number }[];
+};
+
+export type InsightSummary = { available: boolean; tips: string[] };
