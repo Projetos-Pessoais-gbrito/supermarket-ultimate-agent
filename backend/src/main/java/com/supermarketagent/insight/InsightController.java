@@ -23,11 +23,14 @@ class InsightController {
 
     private final SpendingInsightService spending;
     private final ProductPriceInsightService prices;
+    private final SavingsInsightService savings;
     private final Clock clock;
 
-    InsightController(SpendingInsightService spending, ProductPriceInsightService prices, Clock clock) {
+    InsightController(SpendingInsightService spending, ProductPriceInsightService prices,
+                      SavingsInsightService savings, Clock clock) {
         this.spending = spending;
         this.prices = prices;
+        this.savings = savings;
         this.clock = clock;
     }
 
@@ -48,6 +51,12 @@ class InsightController {
     PriceHistory priceHistory(@AuthenticationPrincipal Jwt jwt, @PathVariable long productId) {
         return prices.history(userId(jwt), productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+    }
+
+    @GetMapping("/savings")
+    SavingsInsight savings(@AuthenticationPrincipal Jwt jwt,
+                           @RequestParam(defaultValue = "90") @Min(7) @Max(365) int days) {
+        return savings.savings(userId(jwt), clock.instant(), days);
     }
 
     private YearMonth currentMonth() {
