@@ -6,20 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.supermarketagent.TestcontainersConfiguration;
-import com.supermarketagent.receipt.domain.AccessKey;
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
-import com.supermarketagent.receipt.provider.FetchedReceipt;
-import com.supermarketagent.receipt.provider.NfceProvider;
 import com.supermarketagent.receipt.provider.NfceProviderRegistry;
-import com.supermarketagent.receipt.provider.sp.SpNfcePageParser;
-import java.io.IOException;
-import java.io.InputStream;
+import com.supermarketagent.receipt.support.FixtureSpProvider;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,9 +24,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @Import(TestcontainersConfiguration.class)
 class ReceiptImportServiceTest {
 
-    private static final String KEY = "35260111222333000181650010000123451123456788";
-    private static final String SP = "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaQRCode.aspx";
-    private static final String QR_URL = SP + "?p=" + KEY + "|2|1|1|0123456789abcdef0123456789abcdef01234567";
+    private static final String KEY = FixtureSpProvider.KEY;
+    private static final String SP = FixtureSpProvider.SP_URL;
+    private static final String QR_URL = FixtureSpProvider.QR_URL;
 
     @MockitoBean
     private NfceProviderRegistry registry;
@@ -45,7 +37,7 @@ class ReceiptImportServiceTest {
     @Autowired
     private JdbcTemplate jdbc;
 
-    private final StubSpProvider provider = new StubSpProvider();
+    private final FixtureSpProvider provider = new FixtureSpProvider();
     private long userId;
 
     @BeforeEach
@@ -86,7 +78,7 @@ class ReceiptImportServiceTest {
         ReceiptImportResult second = service.importFromQrCode(userId, QR_URL);
 
         assertThat(second).isEqualTo(new ReceiptImportResult(first.receiptId(), false));
-        assertThat(provider.calls).hasValue(1);
+        assertThat(provider.calls()).isEqualTo(1);
         assertThat(count("receipts")).isEqualTo(1);
     }
 
@@ -117,7 +109,7 @@ class ReceiptImportServiceTest {
 
         assertThatThrownBy(() -> service.importFromQrCode(userId, nfeUrl))
                 .isInstanceOf(InvalidAccessKeyException.class);
-        assertThat(provider.calls).hasValue(0);
+        assertThat(provider.calls()).isZero();
     }
 
     private long insertUser(String email) {
@@ -127,36 +119,5 @@ class ReceiptImportServiceTest {
 
     private int count(String tableAndFilter) {
         return jdbc.queryForObject("SELECT count(*) FROM " + tableAndFilter, Integer.class);
-    }
-
-    /** Returns the anonymized fixture instead of calling SEFAZ. */
-    private static final class StubSpProvider implements NfceProvider {
-
-        private final AtomicInteger calls = new AtomicInteger();
-
-        @Override
-        public String stateCode() {
-            return "35";
-        }
-
-        @Override
-        public ZoneId timeZone() {
-            return ZoneId.of("America/Sao_Paulo");
-        }
-
-        @Override
-        public FetchedReceipt fetch(AccessKey accessKey, String qrCodeUrl) {
-            calls.incrementAndGet();
-            String html = fixture();
-            return new FetchedReceipt(new SpNfcePageParser().parse(html), html);
-        }
-
-        private static String fixture() {
-            try (InputStream in = StubSpProvider.class.getResourceAsStream("/fixtures/sp/nfce-10-items-credit-card.html")) {
-                return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-        }
     }
 }
