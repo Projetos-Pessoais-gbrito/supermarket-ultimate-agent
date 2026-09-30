@@ -50,7 +50,7 @@ public final class ProductNameNormalizer {
         return new NormalizedProduct(name, measure);
     }
 
-    static String upperWithoutAccents(String value) {
+    public static String upperWithoutAccents(String value) {
         String decomposed = Normalizer.normalize(value, Normalizer.Form.NFD);
         return DIACRITICS.matcher(decomposed).replaceAll("").toUpperCase(Locale.ROOT);
     }
