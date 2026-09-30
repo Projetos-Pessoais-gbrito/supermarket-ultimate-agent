@@ -9,7 +9,8 @@ import org.springframework.validation.annotation.Validated;
 
 /**
  * @param secret         HMAC key for signing tokens, at least 32 characters (env {@code JWT_SECRET})
- * @param accessTokenTtl how long an access token is valid
+ * @param accessTokenTtl  how long an access token is valid
+ * @param refreshTokenTtl how long a session lasts without logging in again
  * @param issuer         {@code iss} claim written and required on every token
  */
 @Validated
@@ -19,5 +20,6 @@ public record JwtProperties(
         @Size(min = 32, message = "JWT_SECRET must have at least 32 characters")
         String secret,
         @DefaultValue("1h") Duration accessTokenTtl,
+        @DefaultValue("30d") Duration refreshTokenTtl,
         @DefaultValue("supermarket-agent") String issuer) {
 }
