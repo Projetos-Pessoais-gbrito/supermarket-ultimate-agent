@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiRequest, IMPORT_TIMEOUT_MS } from './client';
 import type {
   BestDayInsight,
   CategoryProducts,
@@ -35,10 +35,20 @@ export const accountApi = {
 
 export const receiptsApi = {
   import: (token: string, qrCodeUrl: string) =>
-    apiRequest<ReceiptDetails>('/api/receipts', { method: 'POST', body: { qrCodeUrl }, token }),
+    apiRequest<ReceiptDetails>('/api/receipts', {
+      method: 'POST',
+      body: { qrCodeUrl },
+      token,
+      timeoutMs: IMPORT_TIMEOUT_MS,
+    }),
   /** SEFAZ page the user opened in the app after solving the captcha (key-only links). */
   importPage: (token: string, accessKey: string, html: string) =>
-    apiRequest<ReceiptDetails>('/api/receipts/page', { method: 'POST', body: { accessKey, html }, token }),
+    apiRequest<ReceiptDetails>('/api/receipts/page', {
+      method: 'POST',
+      body: { accessKey, html },
+      token,
+      timeoutMs: IMPORT_TIMEOUT_MS,
+    }),
   list: (token: string, page = 0, size = 20) =>
     apiRequest<Page<ReceiptSummary>>(`/api/receipts?page=${page}&size=${size}`, { token }),
   details: (token: string, id: number) => apiRequest<ReceiptDetails>(`/api/receipts/${id}`, { token }),
