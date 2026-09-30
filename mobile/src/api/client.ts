@@ -6,6 +6,7 @@ export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly detail?: string,
+    readonly code?: string,
   ) {
     super(detail ?? `Request failed with status ${status}`);
     this.name = 'ApiError';
@@ -39,7 +40,8 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, token 
   }
 
   if (!response.ok) {
-    throw new ApiError(response.status, await readProblemDetail(response));
+    const problem = await readProblemDetail(response);
+    throw new ApiError(response.status, problem?.detail ?? problem?.title, problem?.code);
   }
   if (response.status === 204) {
     return undefined as T;
@@ -47,10 +49,9 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, token 
   return (await response.json()) as T;
 }
 
-async function readProblemDetail(response: Response): Promise<string | undefined> {
+async function readProblemDetail(response: Response): Promise<ProblemDetail | undefined> {
   try {
-    const problem = (await response.json()) as ProblemDetail;
-    return problem.detail ?? problem.title;
+    return (await response.json()) as ProblemDetail;
   } catch {
     return undefined;
   }
