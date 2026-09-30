@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '../api/client';
+import { AppLock } from '../auth/AppLock';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { colors } from '../ui/theme';
 
@@ -12,7 +13,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <QueryProvider>
-        <RootNavigator />
+        <AppLock>
+          <RootNavigator />
+        </AppLock>
         <StatusBar style="auto" />
       </QueryProvider>
     </AuthProvider>
