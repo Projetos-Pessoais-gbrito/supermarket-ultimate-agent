@@ -28,6 +28,14 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="list"
+        options={{
+          title: 'Lista',
+          headerTitle: 'Lista de compras',
+          tabBarIcon: ({ color, size }) => <Ionicons name="cart-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
