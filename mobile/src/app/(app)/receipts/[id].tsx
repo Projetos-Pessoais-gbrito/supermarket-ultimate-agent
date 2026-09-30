@@ -8,9 +8,11 @@ import { formatCurrency, formatDateTime, formatQuantity } from '../../../format'
 import { groupReceiptItems, type GroupedItem } from '../../../receipts/groupItems';
 import { useDeleteReceipt, useReceipt } from '../../../receipts/queries';
 import { Button, ErrorBanner } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 export default function ReceiptDetailsScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const { id, alreadyImported } = useLocalSearchParams<{ id: string; alreadyImported?: string }>();
   const { data: receipt, error, isPending } = useReceipt(Number(id));
 
@@ -31,6 +33,7 @@ export default function ReceiptDetailsScreen() {
 }
 
 function ReceiptContent({ receipt, alreadyImported }: { receipt: ReceiptDetails; alreadyImported: boolean }) {
+  const styles = useStyles();
   const router = useRouter();
   const groups = groupReceiptItems(receipt.items);
   return (
@@ -85,6 +88,7 @@ function ReceiptContent({ receipt, alreadyImported }: { receipt: ReceiptDetails;
 
 /** Two-step delete (explain, then confirm) for receipts imported by mistake. */
 function DeleteReceipt({ receiptId }: { receiptId: number }) {
+  const styles = useStyles();
   const router = useRouter();
   const deleteReceipt = useDeleteReceipt();
   const [confirming, setConfirming] = useState(false);
@@ -111,6 +115,7 @@ function DeleteReceipt({ receiptId }: { receiptId: number }) {
 }
 
 function ItemRow({ group, onPress }: { group: GroupedItem; onPress?: () => void }) {
+  const styles = useStyles();
   const { item, count } = group;
   const details = [
     count > 1 ? `${count}× ` : '',
@@ -138,6 +143,7 @@ function ItemRow({ group, onPress }: { group: GroupedItem; onPress?: () => void 
 }
 
 function SummaryRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+  const styles = useStyles();
   return (
     <View style={styles.summaryRow}>
       <Text style={[styles.summaryLabel, strong && styles.strong]}>{label}</Text>
@@ -146,7 +152,7 @@ function SummaryRow({ label, value, strong = false }: { label: string; value: st
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
   content: { padding: spacing.md, gap: spacing.md },
@@ -171,4 +177,4 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 15, color: colors.textMuted },
   summaryValue: { fontSize: 15, color: colors.text },
   strong: { fontWeight: '700', color: colors.text, fontSize: 17 },
-});
+}));
