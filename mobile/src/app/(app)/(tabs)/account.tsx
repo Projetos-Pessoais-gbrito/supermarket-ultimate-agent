@@ -1,11 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { accountApi, authApi } from '../../../api/endpoints';
 import { errorMessage } from '../../../api/messages';
 import { shareExport } from '../../../account/exportFile';
+import { useAppLock } from '../../../auth/AppLock';
 import { useAuth, useToken } from '../../../auth/AuthProvider';
+import { isBiometricAvailable } from '../../../auth/biometrics';
 import { Button, ErrorBanner, TextField } from '../../../ui/components';
 import { colors, spacing } from '../../../ui/theme';
 
@@ -32,6 +34,8 @@ export default function AccountScreen() {
         <Text style={styles.email}>{me.data?.email ?? '…'}</Text>
         <Button title="Sair" variant="secondary" onPress={() => void signOut()} />
       </View>
+
+      <BiometricSetting />
 
       <View style={styles.card}>
         <Text style={styles.title}>Seus dados</Text>
@@ -86,6 +90,47 @@ export default function AccountScreen() {
   );
 }
 
+function BiometricSetting() {
+  const { enabled, setEnabled } = useAppLock();
+  const [available, setAvailable] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    isBiometricAvailable().then(setAvailable, () => setAvailable(false));
+  }, []);
+
+  async function toggle(on: boolean) {
+    setBusy(true);
+    try {
+      await setEnabled(on);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.switchRow}>
+        <View style={styles.switchText}>
+          <Text style={styles.title}>Entrar com digital</Text>
+          <Text style={styles.text}>
+            {available === false
+              ? 'Cadastre uma digital (ou rosto) nas configurações do celular para usar.'
+              : 'Pede sua digital ao abrir o app e ao voltar depois de 1 minuto.'}
+          </Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={on => void toggle(on)}
+          disabled={!available || busy}
+          trackColor={{ true: colors.primary }}
+          accessibilityLabel="Entrar com digital"
+        />
+      </View>
+    </View>
+  );
+}
+
 function exportErrorMessage(error: unknown): string {
   return error instanceof Error && error.message.startsWith('Compartilhamento')
     ? error.message
@@ -101,4 +146,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   actions: { gap: spacing.sm },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  switchText: { flex: 1, gap: spacing.xs },
 });
