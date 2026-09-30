@@ -10,7 +10,7 @@
   </parent>
   <groupId>com.supermarketagent</groupId>
   <artifactId>backend</artifactId>
-  <version>0.4.0</version>
+  <version>1.0.0</version>
   <name>backend</name>
   <description>Supermarket Ultimate Agent API</description>
   <properties>
