@@ -1,14 +1,15 @@
-import { Link, Stack } from 'expo-router';
+import { Link, Stack, useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage } from '../../api/messages';
 import type { ReceiptSummary } from '../../api/types';
 import { formatCurrency, formatDateTime } from '../../format';
 import { useReceiptList } from '../../receipts/queries';
-import { ErrorBanner } from '../../ui/components';
+import { Button, ErrorBanner } from '../../ui/components';
 import { colors, spacing } from '../../ui/theme';
 
 export default function ReceiptListScreen() {
+  const router = useRouter();
   const { data, error, isPending, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } =
     useReceiptList();
   const receipts = data?.pages.flatMap(page => page.content) ?? [];
@@ -32,6 +33,9 @@ export default function ReceiptListScreen() {
           ListFooterComponent={isFetchingNextPage ? <ActivityIndicator color={colors.primary} /> : null}
         />
       )}
+      <View style={styles.footer}>
+        <Button title="Escanear nota" onPress={() => router.push('/scan')} />
+      </View>
     </View>
   );
 }
@@ -84,4 +88,11 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   emptyText: { fontSize: 15, color: colors.textMuted, textAlign: 'center' },
+  footer: {
+    padding: spacing.md,
+    paddingBottom: spacing.lg,
+    backgroundColor: colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
 });
