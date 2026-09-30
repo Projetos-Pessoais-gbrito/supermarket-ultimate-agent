@@ -89,6 +89,13 @@ class AuthFlowTest {
     }
 
     @Test
+    void rejectsPasswordsLongerThanBcryptAccepts() throws Exception {
+        // 40 accented characters = 80 bytes in UTF-8, above BCrypt's 72-byte limit
+        register("ana@example.com", "á".repeat(40)).andExpect(status().isBadRequest());
+        login("ana@example.com", "á".repeat(40)).andExpect(status().isBadRequest());
+    }
+
+    @Test
     void protectedEndpointsRequireAValidToken() throws Exception {
         mvc.perform(get("/api/me")).andExpect(status().isUnauthorized());
         mvc.perform(get("/api/me").header(HttpHeaders.AUTHORIZATION, "Bearer not.a.token"))
