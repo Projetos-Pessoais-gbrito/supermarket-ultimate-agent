@@ -19,4 +19,17 @@ public interface StoreRepository extends JpaRepository<Store, Long> {
             RETURNING id""", nativeQuery = true)
     long upsert(@Param("cnpj") String cnpj, @Param("name") String name, @Param("displayName") String displayName,
                 @Param("address") String address, @Param("stateCode") String stateCode);
+
+    /**
+     * Creates the store if it is new and never changes an existing one: used for pages the backend
+     * could not verify with SEFAZ, so they cannot rename a store other users see.
+     */
+    @Query(value = """
+            INSERT INTO stores (cnpj, name, display_name, address, state_code)
+            VALUES (:cnpj, :name, :displayName, :address, :stateCode)
+            ON CONFLICT (cnpj) DO UPDATE SET cnpj = stores.cnpj
+            RETURNING id""", nativeQuery = true)
+    long insertIfAbsent(@Param("cnpj") String cnpj, @Param("name") String name,
+                        @Param("displayName") String displayName, @Param("address") String address,
+                        @Param("stateCode") String stateCode);
 }

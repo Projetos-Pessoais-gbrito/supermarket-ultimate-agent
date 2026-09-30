@@ -15,4 +15,16 @@ public interface StoreProductRepository extends JpaRepository<StoreProduct, Long
             RETURNING id""", nativeQuery = true)
     long upsert(@Param("storeId") long storeId, @Param("storeCode") String storeCode,
                 @Param("description") String description, @Param("unit") String unit);
+
+    /**
+     * Creates the store product if it is new and never changes an existing description: used for
+     * pages the backend could not verify with SEFAZ.
+     */
+    @Query(value = """
+            INSERT INTO store_products (store_id, store_code, description, unit)
+            VALUES (:storeId, :storeCode, :description, :unit)
+            ON CONFLICT (store_id, store_code) DO UPDATE SET store_code = store_products.store_code
+            RETURNING id""", nativeQuery = true)
+    long insertIfAbsent(@Param("storeId") long storeId, @Param("storeCode") String storeCode,
+                        @Param("description") String description, @Param("unit") String unit);
 }
