@@ -22,17 +22,21 @@ public class CategoryProductsService {
     public static final String UNCATEGORIZED = "none";
 
     private final JdbcTemplate jdbc;
+    private final InsightWindow window;
 
-    CategoryProductsService(JdbcTemplate jdbc) {
+    CategoryProductsService(JdbcTemplate jdbc, InsightWindow window) {
         this.jdbc = jdbc;
+        this.window = window;
     }
 
     /** Empty when {@code category} is not a known category or {@code none}. */
-    public Optional<CategoryProducts> products(long userId, String category, YearMonth currentMonth, int months) {
+    public Optional<CategoryProducts> products(long userId, String category, YearMonth currentMonth,
+                                               int requestedMonths) {
         boolean uncategorized = UNCATEGORIZED.equals(category);
         if (!uncategorized && !isKnown(category)) {
             return Optional.empty();
         }
+        int months = window.months(userId, currentMonth, requestedMonths);
         Timestamp from = Timestamp.from(startOf(currentMonth.minusMonths(months - 1L)));
         Timestamp to = Timestamp.from(endOf(currentMonth));
 
