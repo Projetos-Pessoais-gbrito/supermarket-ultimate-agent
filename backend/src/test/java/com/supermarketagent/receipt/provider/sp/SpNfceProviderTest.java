@@ -52,7 +52,8 @@ class SpNfceProviderTest {
         RestClient.Builder builder = RestClient.builder().defaultHeader(HttpHeaders.USER_AGENT, "test-agent");
         server = MockRestServiceServer.bindTo(builder).build();
         SpSefazProperties properties = new SpSefazProperties(
-                Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ZERO, 3, Duration.ZERO, "test-agent");
+                Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ZERO, 3, Duration.ZERO, Duration.ofSeconds(45),
+                "test-agent");
         provider = new SpNfceProvider(builder.build(), properties);
     }
 
@@ -165,6 +166,17 @@ class SpNfceProviderTest {
                 .isInstanceOf(SefazUnavailableException.class)
                 .hasMessageContaining("3 attempts");
         server.verify();
+    }
+
+    @Test
+    void givesUpWhenTheOverallDeadlinePasses() {
+        SpSefazProperties noTime = new SpSefazProperties(Duration.ofSeconds(1), Duration.ofSeconds(1), Duration.ZERO,
+                3, Duration.ZERO, Duration.ofNanos(-1), "test-agent");
+        SpNfceProvider impatient = new SpNfceProvider(RestClient.builder().build(), noTime);
+
+        assertThatThrownBy(() -> impatient.fetch(new AccessKey(KEY), QR_URL))
+                .isInstanceOf(SefazUnavailableException.class)
+                .hasMessageContaining("took longer");
     }
 
     @Test

@@ -54,3 +54,5 @@ sefaz:
     min-interval: 1s
     max-attempts: 3
     retry-backoff: 1s
+    # Whole fetch including retries and redirects (the app waits 60 s for an import)
+    max-total-time: 45s
