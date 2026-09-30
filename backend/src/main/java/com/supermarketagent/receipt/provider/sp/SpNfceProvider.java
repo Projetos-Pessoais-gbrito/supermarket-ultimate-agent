@@ -16,6 +16,8 @@ import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -27,6 +29,8 @@ import org.springframework.web.client.RestClient;
 public class SpNfceProvider implements NfceProvider {
 
     private static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
+
+    private static final int MAX_REDIRECTS = 3;
 
     static final Set<String> TRUSTED_HOSTS = Set.of("www.nfce.fazenda.sp.gov.br", "nfce.fazenda.sp.gov.br");
 
@@ -79,16 +83,45 @@ public class SpNfceProvider implements NfceProvider {
         return URI.create("https://" + host + parsed.getRawPath() + "?" + parsed.getRawQuery());
     }
 
+    /**
+     * Downloads the page, following redirects by hand: QR codes print a short link
+     * ({@code /qrcode?p=...}) that SEFAZ-SP redirects to the consultation page. Every hop must
+     * pass the same host allow-list, so a redirect can never lead outside SEFAZ-SP.
+     */
     private String download(URI uri) {
+        URI current = uri;
+        for (int redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+            Response response = requestWithRetry(current);
+            if (response.redirectTo() == null) {
+                return response.body();
+            }
+            current = trustedUri(absolute(current, response.redirectTo()));
+        }
+        throw new NfcePageParseException("SEFAZ-SP redirected too many times");
+    }
+
+    private Response requestWithRetry(URI uri) {
         RuntimeException lastFailure = null;
         for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
             try {
                 throttle.acquire();
-                byte[] body = client.get().uri(uri).retrieve().body(byte[].class);
-                if (body == null) {
-                    throw new NfcePageParseException("SEFAZ returned an empty page");
-                }
-                return new String(body, StandardCharsets.UTF_8);
+                return client.get().uri(uri).exchange((request, response) -> {
+                    HttpStatusCode status = response.getStatusCode();
+                    if (status.is3xxRedirection()) {
+                        String location = response.getHeaders().getFirst(HttpHeaders.LOCATION);
+                        if (location == null) {
+                            throw new NfcePageParseException("SEFAZ-SP redirect without a location");
+                        }
+                        return new Response(null, location);
+                    }
+                    if (status.is5xxServerError()) {
+                        throw new HttpServerErrorException(status);
+                    }
+                    if (status.is4xxClientError()) {
+                        throw new HttpClientErrorException(status);
+                    }
+                    return new Response(new String(response.getBody().readAllBytes(), StandardCharsets.UTF_8), null);
+                });
             } catch (HttpClientErrorException e) {
                 throw new SefazUnavailableException("SEFAZ-SP rejected the request: " + e.getStatusCode(), e);
             } catch (HttpServerErrorException | ResourceAccessException e) {
@@ -101,6 +134,17 @@ public class SpNfceProvider implements NfceProvider {
         }
         throw new SefazUnavailableException(
                 "SEFAZ-SP unavailable after " + properties.maxAttempts() + " attempts", lastFailure);
+    }
+
+    /** Resolves a relative {@code Location} against the current page (kept as text: SEFAZ sends raw pipes). */
+    private static String absolute(URI current, String location) {
+        if (location.startsWith("/")) {
+            return current.getScheme() + "://" + current.getHost() + location;
+        }
+        return location;
+    }
+
+    private record Response(String body, String redirectTo) {
     }
 
     private void backOff(int attempt) {
