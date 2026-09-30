@@ -3,6 +3,38 @@
 All notable changes to this project. Versions follow [SemVer](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.0.0] - 2026-09-30
+
+Insights and dashboards: see where your money goes and how to spend less.
+
+### Added
+
+- **Dashboard (Início tab)**: spending this month vs last month, monthly chart, spending by
+  category and by store, potential savings, best time to buy, personal inflation and AI tips.
+- **Insights API** (`/api/insights/...`), all computed in SQL from the user's own receipts:
+  - spending by month, store and category (São Paulo months);
+  - price history per product;
+  - potential savings and the cheapest store per product;
+  - best period of the month and weekday to buy (each purchase compared with the same product's
+    average price);
+  - personal inflation of the user's basket (weighted like the IPCA);
+  - products of a category, opened by tapping a category bar.
+- **AI tips**: Gemini (free tier) writes 1-3 tips in Portuguese from facts the backend computed;
+  cached until the data changes; hidden when the AI is unavailable.
+- **Product catalog**: normalized names and package sizes, price per kg/L, the same product matched
+  across stores (package size + trigram similarity), automatic categories with Gemini.
+- **Store brand names**: SENDAS DISTRIBUIDORA S/A is shown as ASSAI (also Atacadão, Carrefour,
+  Makro, Sonda, Tenda, Roldão); branches of a chain are combined.
+- **Stay logged in**: rotating refresh tokens (30 days) with reuse detection; the app renews
+  sessions automatically; "Sair" revokes the session on the server.
+- **Conta tab**: export all your data as JSON (LGPD portability), delete your account with
+  password confirmation (LGPD erasure), and **unlock with fingerprint / Face ID**.
+
+### Fixed
+
+- Clear message for SEFAZ links that only have the access key (captcha pages).
+- Cached data is cleared on sign-out, so another person logging in on the same phone never sees it.
+
 ## [0.4.0] - 2026-09-30
 
 First usable version: scan a São Paulo supermarket receipt and see it in the app.
