@@ -1,5 +1,6 @@
 package com.supermarketagent.budget;
 
+import com.supermarketagent.catalog.ProductCategory;
 import com.supermarketagent.insight.InsightPeriod;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -7,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -34,6 +36,14 @@ class BudgetController {
         return budgets.settings(userId(jwt));
     }
 
+    /** Categories a limit can be set for, in display order. */
+    @GetMapping("/api/budget/categories")
+    List<CategoryOption> categories() {
+        return Arrays.stream(ProductCategory.values())
+                .map(category -> new CategoryOption(category.name(), category.label()))
+                .toList();
+    }
+
     /** Replaces all limits; send {@code overall: null} and no categories to remove the budget. */
     @PutMapping("/api/budget")
     BudgetSettings replace(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody BudgetRequest request) {
@@ -57,6 +67,9 @@ class BudgetController {
 
     private static long userId(Jwt jwt) {
         return Long.parseLong(jwt.getSubject());
+    }
+
+    record CategoryOption(String category, String label) {
     }
 
     record BudgetRequest(BigDecimal overall, @Size(max = 20) List<@Valid CategoryLimitRequest> categories) {

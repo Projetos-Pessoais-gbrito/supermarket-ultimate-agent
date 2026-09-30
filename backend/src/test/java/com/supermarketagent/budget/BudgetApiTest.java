@@ -59,6 +59,14 @@ class BudgetApiTest {
     }
 
     @Test
+    void listsTheCategoriesALimitCanBeSetFor() throws Exception {
+        mvc.perform(get("/api/budget/categories").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].category").value("HORTIFRUTI"))
+                .andExpect(jsonPath("$[0].label").value("Hortifruti"));
+    }
+
+    @Test
     void rejectsInvalidBudgetsWithProblemDetails() throws Exception {
         mvc.perform(put("/api/budget").header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
