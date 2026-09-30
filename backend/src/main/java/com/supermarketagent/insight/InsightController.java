@@ -24,13 +24,15 @@ class InsightController {
     private final SpendingInsightService spending;
     private final ProductPriceInsightService prices;
     private final SavingsInsightService savings;
+    private final BestDayInsightService bestDay;
     private final Clock clock;
 
     InsightController(SpendingInsightService spending, ProductPriceInsightService prices,
-                      SavingsInsightService savings, Clock clock) {
+                      SavingsInsightService savings, BestDayInsightService bestDay, Clock clock) {
         this.spending = spending;
         this.prices = prices;
         this.savings = savings;
+        this.bestDay = bestDay;
         this.clock = clock;
     }
 
@@ -57,6 +59,12 @@ class InsightController {
     SavingsInsight savings(@AuthenticationPrincipal Jwt jwt,
                            @RequestParam(defaultValue = "90") @Min(7) @Max(365) int days) {
         return savings.savings(userId(jwt), clock.instant(), days);
+    }
+
+    @GetMapping("/best-day")
+    BestDayInsight bestDay(@AuthenticationPrincipal Jwt jwt,
+                           @RequestParam(defaultValue = "365") @Min(30) @Max(730) int days) {
+        return bestDay.bestDay(userId(jwt), clock.instant(), days);
     }
 
     private YearMonth currentMonth() {
