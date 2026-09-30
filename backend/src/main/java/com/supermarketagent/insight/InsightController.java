@@ -26,16 +26,18 @@ class InsightController {
     private final SavingsInsightService savings;
     private final BestDayInsightService bestDay;
     private final InflationInsightService inflation;
+    private final InsightSummaryService summary;
     private final Clock clock;
 
     InsightController(SpendingInsightService spending, ProductPriceInsightService prices,
                       SavingsInsightService savings, BestDayInsightService bestDay,
-                      InflationInsightService inflation, Clock clock) {
+                      InflationInsightService inflation, InsightSummaryService summary, Clock clock) {
         this.spending = spending;
         this.prices = prices;
         this.savings = savings;
         this.bestDay = bestDay;
         this.inflation = inflation;
+        this.summary = summary;
         this.clock = clock;
     }
 
@@ -74,6 +76,12 @@ class InsightController {
     InflationInsight inflation(@AuthenticationPrincipal Jwt jwt,
                                @RequestParam(defaultValue = "6") @Min(1) @Max(24) int months) {
         return inflation.inflation(userId(jwt), currentMonth(), months);
+    }
+
+    /** AI-written tips from the computed insights; {@code available=false} when no AI provider answers. */
+    @GetMapping("/summary")
+    InsightSummary summary(@AuthenticationPrincipal Jwt jwt) {
+        return summary.summary(userId(jwt), currentMonth(), clock.instant());
     }
 
     private YearMonth currentMonth() {
