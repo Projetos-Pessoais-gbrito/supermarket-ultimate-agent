@@ -59,4 +59,4 @@ No receipt at hand? Paste the link of a receipt QR code in **Ou cole o link do Q
 | Phone can't reach even the dev server | Some routers isolate devices. Use `npm start -- --tunnel`, and expose the backend too (e.g. `ngrok http 8080`), then start with `EXPO_PUBLIC_API_URL=https://<ngrok-url> npm start -- --tunnel`. |
 | "Não foi possível ler essa nota na SEFAZ…" | Only São Paulo receipts are supported for now. |
 | "A SEFAZ não está respondendo…" | SEFAZ-SP is down or slow; try again later. |
-| Logged out after about an hour | Expected for now: sessions last 1 hour until refresh tokens are added. |
+| Asked to log in again | Sessions last 30 days of inactivity; after "Sair" or a detected stolen session you must log in again. |
