@@ -28,12 +28,13 @@
 
 ```
 com.supermarketagent
-├── receipt     # access key, providers (sp/...), import use case, REST
-├── catalog     # stores, store products, canonical products, normalization
-├── insight     # SQL-based analytics + AI text generation
+├── receipt     # access key, QR links, SEFAZ providers (sp), LGPD sanitizing, import, REST
+├── catalog     # stores and brand names, product normalization, matching, AI categories
+├── insight     # SQL analytics (spending, prices, savings, best day, inflation) + AI tips
 ├── ai          # AiClient abstraction + Gemini implementation
-├── user        # accounts, auth, JWT
-└── shared      # errors, config, utilities
+├── auth        # JWT access tokens, rotating refresh tokens, Spring Security
+├── user        # accounts, data export and deletion (LGPD)
+└── shared      # errors, clock, scheduling, web utilities
 ```
 
 ## Data model
@@ -42,7 +43,8 @@ Managed by Flyway (`backend/src/main/resources/db/migration`). All ids are `BIGI
 
 ```
 users            (id, email UNIQUE case-insensitive, password_hash, created_at)
-stores           (id, cnpj UNIQUE, name, address, state_code, created_at, updated_at)
+stores           (id, cnpj UNIQUE, name (legal), display_name (brand, e.g. ASSAI), address,
+                  state_code, created_at, updated_at)
 products         (id, normalized_name [trigram index], brand, category,
                   measure_value, measure_unit, created_at)
 store_products   (id, store_id → stores, store_code, description [trigram index], unit,
@@ -54,13 +56,16 @@ receipts         (id, user_id → users, store_id → stores, access_key CHAR(44
 receipt_items    (id, receipt_id → receipts, store_product_id → store_products,
                   line_number, quantity, unit, unit_price, total_price)
 receipt_payments (id, receipt_id → receipts, method, amount)
+refresh_tokens   (id, user_id → users, token_hash CHAR(64) UNIQUE, expires_at, revoked_at,
+                  created_at)
 ```
 
 - Money is `NUMERIC(12,2)`; quantities and unit prices are `NUMERIC(12,4)` (some items are
   priced with 3 decimals).
 - `issued_at` is `TIMESTAMPTZ`. SEFAZ pages show São Paulo local time, which is converted on
   import; day-of-month analytics use the `America/Sao_Paulo` zone.
-- Deleting a user cascades to their receipts, items and payments (LGPD right to erasure).
+- Deleting a user cascades to their receipts, items, payments and refresh tokens (LGPD right
+  to erasure).
   Stores and products are shared reference data.
 
 ## NFC-e access key layout (44 digits)
