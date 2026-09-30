@@ -20,6 +20,9 @@ export const authApi = {
     apiRequest<TokenResponse>('/api/auth/register', { method: 'POST', body: credentials }),
   login: (credentials: Credentials) =>
     apiRequest<TokenResponse>('/api/auth/login', { method: 'POST', body: credentials }),
+  refresh: (refreshToken: string) =>
+    apiRequest<TokenResponse>('/api/auth/refresh', { method: 'POST', body: { refreshToken } }),
+  logout: (refreshToken: string) => apiRequest<void>('/api/auth/logout', { method: 'POST', body: { refreshToken } }),
   me: (token: string) => apiRequest<Me>('/api/me', { token }),
 };
 
