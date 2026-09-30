@@ -12,9 +12,23 @@ class CatalogJobs {
     private static final Logger log = LoggerFactory.getLogger(CatalogJobs.class);
 
     private final ProductMatcher matcher;
+    private final ProductCategorizer categorizer;
 
-    CatalogJobs(ProductMatcher matcher) {
+    CatalogJobs(ProductMatcher matcher, ProductCategorizer categorizer) {
         this.matcher = matcher;
+        this.categorizer = categorizer;
+    }
+
+    /** Runs outside imports so scanning a receipt never waits for the AI. */
+    @Scheduled(fixedDelayString = "${app.catalog.categorize-interval:PT2M}", initialDelayString = "PT2M")
+    void categorizePendingProducts() {
+        int categorized;
+        do {
+            categorized = categorizer.categorizePending();
+            if (categorized > 0) {
+                log.info("Categorized {} products", categorized);
+            }
+        } while (categorized == ProductCategorizer.BATCH_SIZE);
     }
 
     /** Safety net for anything import-time matching missed (e.g. a failed run or older data). */
