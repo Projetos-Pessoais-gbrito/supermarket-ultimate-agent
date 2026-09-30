@@ -3,9 +3,9 @@ name: Mobile CI
 on:
   push:
     branches: [main, develop]
-    paths: ['mobile/**']
+    paths: ['mobile/**', '.github/workflows/mobile-ci.yml']
   pull_request:
-    paths: ['mobile/**']
+    paths: ['mobile/**', '.github/workflows/mobile-ci.yml']
 
 concurrency:
   group: mobile-${{ github.ref }}
