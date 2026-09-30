@@ -20,6 +20,22 @@ public record AccessKey(String value) {
         if (!value.matches("\\d{" + LENGTH + "}")) {
             throw new InvalidAccessKeyException("Access key must have exactly 44 digits");
         }
+        int expected = computeCheckDigit(value.substring(0, LENGTH - 1));
+        if (Character.getNumericValue(value.charAt(LENGTH - 1)) != expected) {
+            throw new InvalidAccessKeyException("Access key check digit is invalid");
+        }
+    }
+
+    /** Modulo 11 with weights 2..9 applied from right to left (Manual de Orientação do Contribuinte). */
+    static int computeCheckDigit(String first43Digits) {
+        int sum = 0;
+        int weight = 2;
+        for (int i = first43Digits.length() - 1; i >= 0; i--) {
+            sum += Character.getNumericValue(first43Digits.charAt(i)) * weight;
+            weight = weight == 9 ? 2 : weight + 1;
+        }
+        int remainder = sum % 11;
+        return remainder < 2 ? 0 : 11 - remainder;
     }
 
     /** Parses a key as printed on receipts, ignoring spaces and other separators. */
