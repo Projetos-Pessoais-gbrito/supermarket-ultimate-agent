@@ -18,11 +18,13 @@ import { formatCurrency, formatDateTime } from '../../../format';
 import { groupByMonth, monthChipLabel, monthTitle, type ReceiptListRow } from '../../../receipts/monthGroups';
 import { useReceiptList } from '../../../receipts/queries';
 import { Button, ErrorBanner } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 const SEARCH_DELAY_MS = 350;
 
 export default function ReceiptListScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const [text, setText] = useState('');
   const [q, setQ] = useState('');
@@ -118,6 +120,7 @@ function ChipRow({
   onSelect: (value: string | undefined) => void;
   optionLabel: (option: string) => string;
 }) {
+  const styles = useStyles();
   if (options.length < 2 && selected === undefined) {
     return null;
   }
@@ -150,6 +153,7 @@ function ChipRow({
 }
 
 function Row({ row }: { row: ReceiptListRow }) {
+  const styles = useStyles();
   if (row.type === 'receipt') {
     return <ReceiptRow receipt={row.receipt} />;
   }
@@ -166,6 +170,7 @@ function Row({ row }: { row: ReceiptListRow }) {
 }
 
 function ReceiptRow({ receipt }: { receipt: ReceiptSummary }) {
+  const styles = useStyles();
   const router = useRouter();
   // A plain Pressable: wrapping it in <Link asChild> dropped the style function (card layout lost)
   return (
@@ -187,6 +192,7 @@ function ReceiptRow({ receipt }: { receipt: ReceiptSummary }) {
 }
 
 function EmptyState() {
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>Nenhuma nota ainda</Text>
@@ -198,6 +204,7 @@ function EmptyState() {
 }
 
 function NoMatches({ onClear }: { onClear: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.empty}>
       <Text style={styles.emptyTitle}>Nenhuma nota encontrada</Text>
@@ -209,7 +216,7 @@ function NoMatches({ onClear }: { onClear: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.surface },
   loading: { marginTop: spacing.xl },
   filters: {
@@ -277,4 +284,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
   },
-});
+}));

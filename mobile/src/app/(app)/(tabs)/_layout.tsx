@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 
-import { colors } from '../../../ui/theme';
+import { useColors } from '../../../ui/theme';
 
 export default function TabsLayout() {
+  const colors = useColors();
   return (
     <Tabs
       screenOptions={{
@@ -25,6 +26,14 @@ export default function TabsLayout() {
           title: 'Notas',
           headerTitle: 'Minhas notas',
           tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="list"
+        options={{
+          title: 'Lista',
+          headerTitle: 'Lista de compras',
+          tabBarIcon: ({ color, size }) => <Ionicons name="cart-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
