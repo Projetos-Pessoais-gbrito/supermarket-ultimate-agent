@@ -5,12 +5,14 @@ import com.supermarketagent.receipt.importing.ReceiptDeletionService;
 import com.supermarketagent.receipt.importing.ReceiptImportService;
 import com.supermarketagent.receipt.query.ReceiptDetails;
 import com.supermarketagent.receipt.query.ReceiptQueryService;
-import com.supermarketagent.receipt.query.ReceiptSummary;
-import com.supermarketagent.shared.web.PageResponse;
+import com.supermarketagent.receipt.query.ReceiptSearch;
+import com.supermarketagent.receipt.query.ReceiptSearchService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
+import java.time.YearMonth;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,12 +33,14 @@ class ReceiptController {
 
     private final ReceiptImportService importService;
     private final ReceiptQueryService queryService;
+    private final ReceiptSearchService searchService;
     private final ReceiptDeletionService deletionService;
 
     ReceiptController(ReceiptImportService importService, ReceiptQueryService queryService,
-                      ReceiptDeletionService deletionService) {
+                      ReceiptSearchService searchService, ReceiptDeletionService deletionService) {
         this.importService = importService;
         this.queryService = queryService;
+        this.searchService = searchService;
         this.deletionService = deletionService;
     }
 
@@ -68,11 +72,15 @@ class ReceiptController {
         return respond(userId, result);
     }
 
+    /** Newest first; {@code store}, {@code month} (YYYY-MM) and {@code q} (product text) are optional filters. */
     @GetMapping
-    PageResponse<ReceiptSummary> list(@AuthenticationPrincipal Jwt jwt,
-                                      @RequestParam(defaultValue = "0") @Min(0) int page,
-                                      @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size) {
-        return PageResponse.from(queryService.list(userId(jwt), page, size));
+    ReceiptSearch.Result list(@AuthenticationPrincipal Jwt jwt,
+                              @RequestParam(defaultValue = "0") @Min(0) int page,
+                              @RequestParam(defaultValue = "20") @Min(1) @Max(100) int size,
+                              @RequestParam(required = false) @Size(max = 200) String store,
+                              @RequestParam(required = false) YearMonth month,
+                              @RequestParam(required = false) @Size(max = 100) String q) {
+        return searchService.search(userId(jwt), new ReceiptSearch.Filter(store, month, q), page, size);
     }
 
     /** Removes a receipt imported by mistake; 404 when it is not the user's. */
