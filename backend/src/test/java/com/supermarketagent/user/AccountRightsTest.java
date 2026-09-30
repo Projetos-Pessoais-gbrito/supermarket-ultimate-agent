@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -72,6 +73,27 @@ class AccountRightsTest {
                 .andExpect(jsonPath("$.receipts[0].items.length()").value(10))
                 .andExpect(jsonPath("$.receipts[0].payments[0].method").value("Cartão de Crédito"))
                 .andExpect(jsonPath("$..passwordHash").isEmpty());
+    }
+
+    @Test
+    void exportsTheShoppingListAndBudgets() throws Exception {
+        mvc.perform(post("/api/shopping-list").header(HttpHeaders.AUTHORIZATION, bearer())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Café\"}"))
+                .andExpect(status().isCreated());
+        mvc.perform(put("/api/budget").header(HttpHeaders.AUTHORIZATION, bearer())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"overall\":1200.00,\"categories\":[{\"category\":\"MERCEARIA\",\"limit\":400.00}]}"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/api/me/export").header(HttpHeaders.AUTHORIZATION, bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shoppingList.length()").value(1))
+                .andExpect(jsonPath("$.shoppingList[0].name").value("Café"))
+                .andExpect(jsonPath("$.shoppingList[0].checked").value(false))
+                .andExpect(jsonPath("$.budgets.length()").value(2))
+                .andExpect(jsonPath("$.budgets[0].category").isEmpty())
+                .andExpect(jsonPath("$.budgets[0].monthlyLimit").value(1200.0))
+                .andExpect(jsonPath("$.budgets[1].category").value("MERCEARIA"));
     }
 
     @Test
