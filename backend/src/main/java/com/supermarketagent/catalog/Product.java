@@ -20,6 +20,10 @@ public class Product {
     @Column(name = "normalized_name", nullable = false)
     private String normalizedName;
 
+    /** Readable name written by the AI; null until categorized. */
+    @Column(name = "display_name")
+    private String displayName;
+
     private String brand;
 
     private String category;
@@ -40,6 +44,16 @@ public class Product {
 
     public String getNormalizedName() {
         return normalizedName;
+    }
+
+    /** Friendly name, falling back to the normalized receipt description. */
+    public String getDisplayName() {
+        return displayName != null ? displayName : normalizedName;
+    }
+
+    /** The AI-written name only, or null while it has not been written yet. */
+    public String getFriendlyName() {
+        return displayName;
     }
 
     public String getBrand() {
