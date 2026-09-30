@@ -15,7 +15,7 @@ import com.supermarketagent.ai.AiClient;
 import com.supermarketagent.ai.AiUnavailableException;
 import com.supermarketagent.insight.InsightSummaryService.Answer;
 import java.time.Instant;
-import java.time.YearMonth;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,7 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 @Import(TestcontainersConfiguration.class)
 class InsightSummaryServiceTest {
 
-    private static final YearMonth SEPTEMBER = YearMonth.of(2026, 9);
+    private static final LocalDate TODAY = LocalDate.of(2026, 9, 30);
     private static final Instant NOW = Instant.parse("2026-09-30T12:00:00Z");
 
     @MockitoBean
@@ -50,7 +50,6 @@ class InsightSummaryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service.clearCache();
         data = new InsightTestData(jdbc);
         data.reset();
         ana = data.user("ana@example.com");
@@ -69,32 +68,55 @@ class InsightSummaryServiceTest {
         data.receipt(ana, assai, "2026-08-10T15:00:00Z", riceAtAssai, "4", "25.00");
         data.receipt(ana, carrefour, "2026-09-10T15:00:00Z", riceAtCarrefour, "2", "30.00");
 
-        InsightSummary summary = service.summary(ana, SEPTEMBER, NOW);
+        InsightSummary summary = service.summary(ana, TODAY, NOW);
 
         assertThat(summary.available()).isTrue();
         assertThat(summary.tips()).containsExactly("Compre arroz no ASSAI: sai mais barato.");
         verify(ai).generateJson(argThat(prompt -> prompt.contains("Gasto em setembro: R$ 60,00 em 1 notas.")
-                && prompt.contains("Variação em relação a agosto: -40,0%.")
+                && prompt.contains("Variação em relação a agosto no mesmo período (dias 1 a 30): -40,0%.")
                 && prompt.contains("melhor preço R$ 25,00 no ASSAI")
-                && prompt.contains("SOMENTE os fatos")), anyMap(), eq(Answer.class));
+                && prompt.contains("SOMENTE os fatos")
+                && prompt.contains("circulares")
+                && !prompt.contains("Mercado onde mais gastou")), anyMap(), eq(Answer.class));
     }
 
     @Test
     void reusesTipsWhileTheDataDoesNotChange() {
         data.receipt(ana, assai, "2026-09-10T15:00:00Z", riceAtAssai, "1", "25.00");
 
-        service.summary(ana, SEPTEMBER, NOW);
-        service.summary(ana, SEPTEMBER, NOW);
+        service.summary(ana, TODAY, NOW);
+        service.summary(ana, TODAY, NOW);
         verify(ai, times(1)).generateJson(any(), anyMap(), eq(Answer.class));
 
         data.receipt(ana, assai, "2026-09-12T15:00:00Z", riceAtAssai, "1", "26.00");
-        service.summary(ana, SEPTEMBER, NOW);
+        service.summary(ana, TODAY, NOW);
         verify(ai, times(2)).generateJson(any(), anyMap(), eq(Answer.class));
     }
 
     @Test
+    void keepsTipsInTheDatabaseSoTheySurviveRestarts() {
+        data.receipt(ana, assai, "2026-09-10T15:00:00Z", riceAtAssai, "1", "25.00");
+
+        service.summary(ana, TODAY, NOW);
+
+        assertThat(jdbc.queryForObject("SELECT tips::text FROM insight_summaries WHERE user_id = ?", String.class, ana))
+                .contains("Compre arroz no ASSAI");
+    }
+
+    @Test
+    void keepsOnlyTheLatestSummaryPerUser() {
+        data.receipt(ana, assai, "2026-09-10T15:00:00Z", riceAtAssai, "1", "25.00");
+        service.summary(ana, TODAY, NOW);
+        data.receipt(ana, assai, "2026-09-12T15:00:00Z", riceAtAssai, "1", "26.00");
+        service.summary(ana, TODAY, NOW);
+
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM insight_summaries WHERE user_id = ?", Integer.class, ana))
+                .isEqualTo(1);
+    }
+
+    @Test
     void doesNotCallTheAiWithoutPurchases() {
-        InsightSummary summary = service.summary(ana, SEPTEMBER, NOW);
+        InsightSummary summary = service.summary(ana, TODAY, NOW);
 
         assertThat(summary.available()).isTrue();
         assertThat(summary.tips()).isEmpty();
@@ -106,7 +128,7 @@ class InsightSummaryServiceTest {
         data.receipt(ana, assai, "2026-09-10T15:00:00Z", riceAtAssai, "1", "25.00");
         when(ai.generateJson(any(), anyMap(), eq(Answer.class))).thenThrow(new AiUnavailableException("quota"));
 
-        assertThat(service.summary(ana, SEPTEMBER, NOW)).isEqualTo(new InsightSummary(false, List.of()));
+        assertThat(service.summary(ana, TODAY, NOW)).isEqualTo(new InsightSummary(false, List.of()));
     }
 
     @Test
@@ -115,7 +137,7 @@ class InsightSummaryServiceTest {
         when(ai.generateJson(any(), anyMap(), eq(Answer.class)))
                 .thenReturn(new Answer(List.of("a", " ", "b", "c", "d", "x".repeat(500))));
 
-        List<String> tips = service.summary(ana, SEPTEMBER, NOW).tips();
+        List<String> tips = service.summary(ana, TODAY, NOW).tips();
 
         assertThat(tips).containsExactly("a", "b", "c");
     }
@@ -124,6 +146,6 @@ class InsightSummaryServiceTest {
     void isUnavailableWithoutAnAiProvider() {
         when(ai.isAvailable()).thenReturn(false);
 
-        assertThat(service.summary(ana, SEPTEMBER, NOW).available()).isFalse();
+        assertThat(service.summary(ana, TODAY, NOW).available()).isFalse();
     }
 }

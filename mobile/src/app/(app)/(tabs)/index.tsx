@@ -19,6 +19,7 @@ import {
   savePeriod,
   type Period,
 } from '../../../insights/period';
+import { monthComparisonText } from '../../../insights/comparison';
 import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
@@ -112,18 +113,9 @@ export default function DashboardScreen() {
 }
 
 function MonthHero({ spending }: { spending: SpendingInsight }) {
-  const { currentMonth, previousMonth, changePercent } = spending;
-  let comparison: string;
-  if (changePercent === null) {
-    comparison = `Sem compras registradas em ${formatMonthLong(previousMonth.month)} para comparar`;
-  } else if (changePercent === 0) {
-    comparison = `Igual a ${formatMonthLong(previousMonth.month)}`;
-  } else {
-    // Arrow + words, so the direction never depends on color alone
-    comparison = `${changePercent > 0 ? '▲' : '▼'} ${formatPercent(changePercent)} ${
-      changePercent > 0 ? 'a mais' : 'a menos'
-    } que ${formatMonthLong(previousMonth.month)}`;
-  }
+  const { currentMonth } = spending;
+  // Same days of the previous month, so a month in progress is compared fairly
+  const comparison = monthComparisonText(spending);
 
   return (
     <View style={styles.card}>
@@ -157,7 +149,15 @@ function TipsCard({ summary }: { summary: InsightSummary }) {
 function InflationCard({ inflation }: { inflation: InflationInsight }) {
   const latest = inflation.monthly[inflation.monthly.length - 1];
   if (!latest || latest.changePercent === null) {
-    return null;
+    // Keep the card visible so people learn the feature exists and what it needs
+    return (
+      <Card title="Sua inflação" subtitle="Comparado ao mês anterior">
+        <Text style={styles.muted}>
+          Compre os mesmos produtos em meses seguidos para ver sua inflação: comparamos o preço de cada
+          produto com o do mês anterior.
+        </Text>
+      </Card>
+    );
   }
   const change = latest.changePercent;
   const direction = change > 0 ? '▲' : change < 0 ? '▼' : '=';

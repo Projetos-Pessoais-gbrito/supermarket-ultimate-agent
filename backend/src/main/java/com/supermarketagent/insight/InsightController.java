@@ -5,6 +5,7 @@ import com.supermarketagent.insight.ProductPriceInsight.ProductSummary;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -47,7 +48,7 @@ class InsightController {
     @GetMapping("/spending")
     SpendingInsight spending(@AuthenticationPrincipal Jwt jwt,
                              @RequestParam(defaultValue = "6") @Min(InsightWindow.ALL) @Max(120) int months) {
-        return spending.spending(userId(jwt), currentMonth(), months);
+        return spending.spending(userId(jwt), LocalDate.now(clock.withZone(InsightPeriod.SAO_PAULO)), months);
     }
 
     @GetMapping("/products")
@@ -84,7 +85,8 @@ class InsightController {
     /** AI-written tips from the computed insights; {@code available=false} when no AI provider answers. */
     @GetMapping("/summary")
     InsightSummary summary(@AuthenticationPrincipal Jwt jwt) {
-        return summary.summary(userId(jwt), currentMonth(), clock.instant());
+        return summary.summary(userId(jwt), LocalDate.now(clock.withZone(InsightPeriod.SAO_PAULO)),
+                clock.instant());
     }
 
     /** Products of one category ({@code none} = not categorized yet), same months as the spending insight. */
