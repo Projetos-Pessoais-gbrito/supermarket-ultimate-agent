@@ -10,6 +10,7 @@ import com.supermarketagent.insight.SpendingInsight.StoreTotal;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,11 +36,17 @@ public class SpendingInsightService {
         this.window = window;
     }
 
+    /** Whole-month view (e.g. past months or tests): the comparison covers the full previous month. */
+    public SpendingInsight spending(long userId, YearMonth currentMonth, int requestedMonths) {
+        return spending(userId, currentMonth.atEndOfMonth(), requestedMonths);
+    }
+
     /**
-     * @param currentMonth    the month considered "now" (São Paulo time)
+     * @param today           the day considered "now" (São Paulo time); its month is the current month
      * @param requestedMonths window size, including the current month; {@link InsightWindow#ALL} for everything
      */
-    public SpendingInsight spending(long userId, YearMonth currentMonth, int requestedMonths) {
+    public SpendingInsight spending(long userId, LocalDate today, int requestedMonths) {
+        YearMonth currentMonth = YearMonth.from(today);
         int months = window.months(userId, currentMonth, requestedMonths);
         YearMonth firstMonth = currentMonth.minusMonths(months - 1L);
         Timestamp from = Timestamp.from(startOf(firstMonth));
@@ -47,12 +54,29 @@ public class SpendingInsightService {
 
         List<MonthTotal> monthly = monthly(userId, firstMonth, currentMonth, from, to);
         MonthTotal current = monthly.getLast();
-        MonthTotal previous = months > 1
-                ? monthly.get(monthly.size() - 2)
-                : monthTotal(userId, currentMonth.minusMonths(1));
+        YearMonth previousMonth = currentMonth.minusMonths(1);
+        MonthTotal previous = months > 1 ? monthly.get(monthly.size() - 2) : monthTotal(userId, previousMonth);
 
-        return new SpendingInsight(current, previous, changePercent(current.total(), previous.total()), monthly,
+        // A month in progress is compared with the same days of the previous month (day 1 to today)
+        int untilDay = Math.min(today.getDayOfMonth(), previousMonth.lengthOfMonth());
+        MonthTotal previousToDate = untilDay == previousMonth.lengthOfMonth()
+                ? previous
+                : total(userId, previousMonth.toString(), Timestamp.from(startOf(previousMonth)),
+                        Timestamp.from(previousMonth.atDay(untilDay + 1).atStartOfDay(InsightPeriod.SAO_PAULO)
+                                .toInstant()));
+
+        return new SpendingInsight(current, previous, previousToDate, untilDay,
+                changePercent(current.total(), previousToDate.total()), monthly,
                 byStore(userId, from, to), byCategory(userId, from, to));
+    }
+
+    private MonthTotal total(long userId, String month, Timestamp from, Timestamp to) {
+        return jdbc.queryForObject("""
+                SELECT coalesce(sum(total_amount), 0) AS total, count(*) AS receipts
+                FROM receipts
+                WHERE user_id = ? AND issued_at >= ? AND issued_at < ?""",
+                (rs, row) -> new MonthTotal(month, rs.getBigDecimal("total"), rs.getInt("receipts")),
+                userId, from, to);
     }
 
     private List<MonthTotal> monthly(long userId, YearMonth first, YearMonth last, Timestamp from, Timestamp to) {
