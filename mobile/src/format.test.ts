@@ -1,4 +1,12 @@
-import { formatCurrency, formatDate, formatDateTime, formatQuantity } from './format';
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+  formatMonthLong,
+  formatMonthShort,
+  formatPercent,
+  formatQuantity,
+} from './format';
 
 describe('formatCurrency', () => {
   it.each([
@@ -29,5 +37,17 @@ describe('dates in São Paulo time', () => {
 
   it('keeps late-evening purchases on the local day', () => {
     expect(formatDate('2026-09-30T01:30:00Z')).toBe('29/09/2026');
+  });
+});
+
+describe('months and percentages', () => {
+  it('names months in Portuguese', () => {
+    expect(formatMonthShort('2026-09')).toBe('set');
+    expect(formatMonthLong('2026-03')).toBe('março');
+  });
+
+  it('formats percentages with a decimal comma', () => {
+    expect(formatPercent(-3.24)).toBe('3,2%');
+    expect(formatPercent(12)).toBe('12,0%');
   });
 });

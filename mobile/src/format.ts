@@ -38,3 +38,24 @@ export function formatDateTime(iso: string): string {
 export function formatDate(iso: string): string {
   return saoPauloParts(iso).date;
 }
+
+const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MONTHS_LONG = [
+  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+  'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+];
+
+/** "2026-09" → "set" */
+export function formatMonthShort(yearMonth: string): string {
+  return MONTHS[Number(yearMonth.slice(5, 7)) - 1];
+}
+
+/** "2026-09" → "setembro" */
+export function formatMonthLong(yearMonth: string): string {
+  return MONTHS_LONG[Number(yearMonth.slice(5, 7)) - 1];
+}
+
+/** 12.345 → "12,3%" (absolute value; callers say whether it is up or down) */
+export function formatPercent(value: number): string {
+  return `${Math.abs(value).toFixed(1).replace('.', ',')}%`;
+}
