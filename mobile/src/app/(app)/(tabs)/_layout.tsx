@@ -8,9 +8,9 @@ import { useColors } from '../../../ui/theme';
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 /** Tab bar colors can be platform color objects or null; icons need a plain color string. */
-function tabIcon(name: IconName) {
+function tabIcon(name: IconName, fallbackColor: string) {
   return function TabIcon({ color, size }: { color: ColorValue; size: number }) {
-    return <Ionicons name={name} color={typeof color === 'string' ? color : colors.textMuted} size={size} />;
+    return <Ionicons name={name} color={typeof color === 'string' ? color : fallbackColor} size={size} />;
   };
 }
 
@@ -28,7 +28,7 @@ export default function TabsLayout() {
         options={{
           title: 'Início',
           headerTitle: 'Resumo',
-          tabBarIcon: tabIcon('stats-chart'),
+          tabBarIcon: tabIcon('stats-chart', colors.textMuted),
         }}
       />
       <Tabs.Screen
@@ -36,7 +36,7 @@ export default function TabsLayout() {
         options={{
           title: 'Notas',
           headerTitle: 'Minhas notas',
-          tabBarIcon: tabIcon('receipt-outline'),
+          tabBarIcon: tabIcon('receipt-outline', colors.textMuted),
         }}
       />
       <Tabs.Screen
@@ -44,14 +44,14 @@ export default function TabsLayout() {
         options={{
           title: 'Lista',
           headerTitle: 'Lista de compras',
-          tabBarIcon: ({ color, size }) => <Ionicons name="cart-outline" color={color} size={size} />,
+          tabBarIcon: tabIcon('cart-outline', colors.textMuted),
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Conta',
-          tabBarIcon: tabIcon('person-circle-outline'),
+          tabBarIcon: tabIcon('person-circle-outline', colors.textMuted),
         }}
       />
     </Tabs>
