@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { accountApi, authApi } from '../../../api/endpoints';
 import { API_BASE_URL } from '../../../config';
@@ -13,6 +14,7 @@ import { Button, ErrorBanner, TextField } from '../../../ui/components';
 import { colors, spacing } from '../../../ui/theme';
 
 export default function AccountScreen() {
+  const router = useRouter();
   const token = useToken();
   const { signOut } = useAuth();
   const me = useQuery({ queryKey: ['me'], queryFn: () => authApi.me(token) });
@@ -40,6 +42,17 @@ export default function AccountScreen() {
       </View>
 
       <BiometricSetting />
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/budget')}
+        style={({ pressed }) => [styles.card, styles.linkRow, pressed && styles.pressed]}>
+        <View style={styles.switchText}>
+          <Text style={styles.title}>Orçamento mensal</Text>
+          <Text style={styles.text}>Limite do mês e por categoria</Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
 
       <View style={styles.card}>
         <Text style={styles.title}>Seus dados</Text>
@@ -153,4 +166,7 @@ const styles = StyleSheet.create({
   actions: { gap: spacing.sm },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   switchText: { flex: 1, gap: spacing.xs },
+  linkRow: { flexDirection: 'row', alignItems: 'center' },
+  pressed: { opacity: 0.7 },
+  chevron: { fontSize: 24, color: colors.textMuted },
 });
