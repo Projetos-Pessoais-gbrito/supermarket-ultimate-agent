@@ -8,6 +8,9 @@ export const colors = {
   border: '#D5DBD8',
   danger: '#B3261E',
   dangerBackground: '#FDECEA',
+  // Charts: accent series is `primary`; context series recede to this gray
+  chartMuted: '#C9D1CD',
+  chartTrack: '#EEF1EF',
 };
 
 export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32 };
