@@ -38,6 +38,23 @@ export function useImportReceipt() {
   });
 }
 
+/** Same as {@link useImportReceipt}, for a page opened in the app after the SEFAZ captcha. */
+export function useImportReceiptPage() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ accessKey, html }: { accessKey: string; html: string }) =>
+      receiptsApi.importPage(token, accessKey, html),
+    onSuccess: receipt => {
+      queryClient.setQueryData(receiptKeys.details(receipt.id), receipt);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
+        queryClient.invalidateQueries({ queryKey: insightKeys.all }),
+      ]);
+    },
+  });
+}
+
 export function useReceipt(id: number) {
   const token = useToken();
   return useQuery({
