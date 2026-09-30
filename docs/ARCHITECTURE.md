@@ -36,24 +36,32 @@ com.supermarketagent
 └── shared      # errors, config, utilities
 ```
 
-## Data model (first version)
+## Data model
+
+Managed by Flyway (`backend/src/main/resources/db/migration`). All ids are `BIGINT` identity.
 
 ```
-users            (id, email, password_hash, created_at)
-stores           (id, cnpj UNIQUE, name, trade_name, address, city, uf)
-receipts         (id, user_id → users, store_id → stores, access_key CHAR(44),
-                  issued_at, total_amount, discount_amount, payment_method,
-                  source_url, raw_html, created_at,
-                  UNIQUE(user_id, access_key))
-store_products   (id, store_id → stores, store_code, description, gtin, ncm, unit,
+users            (id, email UNIQUE case-insensitive, password_hash, created_at)
+stores           (id, cnpj UNIQUE, name, address, state_code, created_at, updated_at)
+products         (id, normalized_name [trigram index], brand, category,
+                  measure_value, measure_unit, created_at)
+store_products   (id, store_id → stores, store_code, description [trigram index], unit,
                   product_id → products NULL, UNIQUE(store_id, store_code))
-products         (id, normalized_name, brand, category, measure_value, measure_unit)
+receipts         (id, user_id → users, store_id → stores, access_key CHAR(44),
+                  number, series, issued_at, total_amount, discount_amount,
+                  approximate_taxes, source_url, raw_html, created_at,
+                  UNIQUE(user_id, access_key))
 receipt_items    (id, receipt_id → receipts, store_product_id → store_products,
                   line_number, quantity, unit, unit_price, total_price)
+receipt_payments (id, receipt_id → receipts, method, amount)
 ```
 
-Money is stored as `NUMERIC(12,2)`, quantities as `NUMERIC(12,4)`; timestamps in
-`TIMESTAMPTZ` using the `America/Sao_Paulo` zone for day-of-month analytics.
+- Money is `NUMERIC(12,2)`; quantities and unit prices are `NUMERIC(12,4)` (some items are
+  priced with 3 decimals).
+- `issued_at` is `TIMESTAMPTZ`. SEFAZ pages show São Paulo local time, which is converted on
+  import; day-of-month analytics use the `America/Sao_Paulo` zone.
+- Deleting a user cascades to their receipts, items and payments (LGPD right to erasure).
+  Stores and products are shared reference data.
 
 ## NFC-e access key layout (44 digits)
 
