@@ -34,12 +34,22 @@ export type ReceiptSummary = {
 export type ReceiptItem = {
   lineNumber: number;
   code: string;
+  /** As printed on the receipt */
   description: string;
   quantity: number;
   unit: string;
   unitPrice: number;
   totalPrice: number;
+  /** Canonical product; null until matched */
+  productId: number | null;
+  /** Friendly name written by the AI; null until available */
+  productName: string | null;
+  categoryLabel: string | null;
 };
+
+export type PricePoint = { issuedAt: string; storeId: number; storeName: string; unitPrice: number; unit: string };
+
+export type PriceHistory = { productId: number; name: string; prices: PricePoint[] };
 
 export type ReceiptDetails = {
   id: number;
