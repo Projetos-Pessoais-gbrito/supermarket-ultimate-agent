@@ -30,3 +30,12 @@ management:
 server:
   error:
     include-stacktrace: never
+
+sefaz:
+  sp:
+    connect-timeout: 5s
+    read-timeout: 15s
+    # Be polite to SEFAZ: at most one request per interval, across all users
+    min-interval: 1s
+    max-attempts: 3
+    retry-backoff: 1s
