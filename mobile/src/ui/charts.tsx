@@ -71,32 +71,25 @@ export function ColumnChart({ data, highlightKey, formatValue, height = 140 }: C
 type BarListProps = {
   items: ChartDatum[];
   formatValue: (value: number) => string;
-  /** Makes rows tappable (except the folded "Outros" row). */
+  /** Makes every row tappable. */
   onPressItem?: (key: string) => void;
-  /** Rows shown before folding the rest into "Outros". */
+  /** Rows shown before "Ver todas"; the rest are revealed, never merged, so each stays reachable. */
   maxRows?: number;
 };
 
 /** Ranked horizontal bars with the value written as text, one hue, largest first. */
 export function BarList({ items, formatValue, onPressItem, maxRows = 5 }: BarListProps) {
+  const [expanded, setExpanded] = useState(false);
   const sorted = [...items].sort((a, b) => b.value - a.value);
-  const rows =
-    sorted.length > maxRows
-      ? [
-          ...sorted.slice(0, maxRows - 1),
-          {
-            key: 'others',
-            label: 'Outros',
-            value: sorted.slice(maxRows - 1).reduce((sum, item) => sum + item.value, 0),
-          },
-        ]
-      : sorted;
-  const max = Math.max(...rows.map(row => row.value), 0);
+  const hidden = Math.max(sorted.length - maxRows, 0);
+  const rows = expanded ? sorted : sorted.slice(0, maxRows);
+  // Scale against the largest value overall, so bars keep their size when expanding
+  const max = Math.max(...sorted.map(row => row.value), 0);
 
   return (
     <View style={styles.list}>
       {rows.map(row => {
-        const pressable = onPressItem !== undefined && row.key !== 'others';
+        const pressable = onPressItem !== undefined;
         return (
           <Pressable
             key={row.key}
@@ -121,6 +114,15 @@ export function BarList({ items, formatValue, onPressItem, maxRows = 5 }: BarLis
           </Pressable>
         );
       })}
+      {hidden > 0 && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setExpanded(value => !value)}
+          hitSlop={8}
+          style={({ pressed }) => [styles.toggle, pressed && styles.listRowPressed]}>
+          <Text style={styles.toggleText}>{expanded ? 'Mostrar menos' : `Ver todas (${hidden} mais)`}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -143,6 +145,8 @@ const styles = StyleSheet.create({
   list: { gap: spacing.md },
   listRow: { gap: spacing.xs },
   listRowPressed: { opacity: 0.6 },
+  toggle: { alignSelf: 'flex-start', paddingVertical: spacing.xs },
+  toggleText: { fontSize: 14, fontWeight: '600', color: colors.primary },
   listText: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   listLabel: { flex: 1, fontSize: 14, color: colors.text },
   listValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
