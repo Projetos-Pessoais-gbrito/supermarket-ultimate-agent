@@ -31,7 +31,8 @@
           "cameraPermission": "Permita o acesso à câmera para escanear o QR code das suas notas fiscais.",
           "recordAudioAndroid": false
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "scheme": "supermarketagent",
     "experiments": {

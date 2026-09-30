@@ -26,6 +26,13 @@ export const authApi = {
   me: (token: string) => apiRequest<Me>('/api/me', { token }),
 };
 
+export const accountApi = {
+  /** Everything the app keeps about the user (LGPD), as returned by the backend. */
+  export: (token: string) => apiRequest<unknown>('/api/me/export', { token }),
+  delete: (token: string, password: string) =>
+    apiRequest<void>('/api/me', { method: 'DELETE', body: { password }, token }),
+};
+
 export const receiptsApi = {
   import: (token: string, qrCodeUrl: string) =>
     apiRequest<ReceiptDetails>('/api/receipts', { method: 'POST', body: { qrCodeUrl }, token }),

@@ -12,6 +12,8 @@ export function errorMessage(error: unknown): string {
       return 'Esse QR code não é de uma nota fiscal válida.';
     case 401:
       return 'Sua sessão expirou. Entre novamente.';
+    case 403:
+      return 'Senha incorreta.';
     case 404:
       return 'Nota fiscal não encontrada.';
     case 409:
