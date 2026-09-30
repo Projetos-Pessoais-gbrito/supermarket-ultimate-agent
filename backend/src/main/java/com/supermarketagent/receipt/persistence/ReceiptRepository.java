@@ -1,6 +1,7 @@
 package com.supermarketagent.receipt.persistence;
 
 import com.supermarketagent.receipt.query.ReceiptSummary;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,9 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
             order by r.issuedAt desc, r.id desc""",
             countQuery = "select count(r) from Receipt r where r.userId = :userId")
     Page<ReceiptSummary> findSummariesByUserId(@Param("userId") long userId, Pageable pageable);
+
+    @Query("select r.id from Receipt r where r.userId = :userId order by r.issuedAt, r.id")
+    List<Long> findIdsByUserId(@Param("userId") long userId);
 
     @EntityGraph(attributePaths = {"store", "items", "items.storeProduct"})
     Optional<Receipt> findByIdAndUserId(long id, long userId);
