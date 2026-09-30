@@ -1,8 +1,8 @@
 import { ApiError } from './client';
 
 export const KEY_ONLY_LINK_MESSAGE =
-  'Esse link é da consulta por chave de acesso, que pede captcha na SEFAZ. Escaneie o QR code do cupom ' +
-  'ou cole o link que abre ao escanear (ele contém "qrcode?p=").';
+  'Esse link só tem a chave de acesso, e a SEFAZ pede um captcha para mostrar a nota. Toque em ' +
+  '"Abrir na SEFAZ" para resolver o captcha aqui no app, ou escaneie o QR code do cupom.';
 
 /** User-facing (pt-BR) message for a failed request. Screens can override specific statuses. */
 export function errorMessage(error: unknown): string {

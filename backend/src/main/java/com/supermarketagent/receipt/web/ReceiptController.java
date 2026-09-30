@@ -38,12 +38,27 @@ class ReceiptController {
     ResponseEntity<ReceiptDetails> importReceipt(@AuthenticationPrincipal Jwt jwt,
                                                  @Valid @RequestBody ImportReceiptRequest request) {
         long userId = userId(jwt);
-        ReceiptImportResult result = importService.importFromQrCode(userId, request.qrCodeUrl());
+        return respond(userId, importService.importFromQrCode(userId, request.qrCodeUrl()));
+    }
+
+    private ResponseEntity<ReceiptDetails> respond(long userId, ReceiptImportResult result) {
         ReceiptDetails details = queryService.details(userId, result.receiptId());
         if (!result.created()) {
             return ResponseEntity.ok(details);
         }
         return ResponseEntity.created(URI.create("/api/receipts/" + details.id())).body(details);
+    }
+
+    /**
+     * Imports the SEFAZ page the user opened in the app after solving the captcha (links that only
+     * carry the access key). 201 when new, 200 when the user already had it.
+     */
+    @PostMapping("/page")
+    ResponseEntity<ReceiptDetails> importPage(@AuthenticationPrincipal Jwt jwt,
+                                              @Valid @RequestBody ImportPageRequest request) {
+        long userId = userId(jwt);
+        ReceiptImportResult result = importService.importFromCaptchaPage(userId, request.accessKey(), request.html());
+        return respond(userId, result);
     }
 
     @GetMapping

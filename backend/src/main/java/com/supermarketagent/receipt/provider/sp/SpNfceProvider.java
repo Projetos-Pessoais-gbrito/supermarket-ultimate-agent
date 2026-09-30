@@ -65,6 +65,22 @@ public class SpNfceProvider implements NfceProvider {
         return new FetchedReceipt(receipt, html);
     }
 
+    @Override
+    public FetchedReceipt parseUserPage(AccessKey accessKey, String html) {
+        String sanitized = PersonalDataSanitizer.sanitizeHtml(html);
+        ParsedReceipt receipt = parser.parse(sanitized);
+        if (!receipt.accessKey().equals(accessKey)) {
+            throw new NfcePageParseException("The page shows a different receipt than the one requested");
+        }
+        return new FetchedReceipt(receipt, sanitized);
+    }
+
+    @Override
+    public String keyConsultationUrl(AccessKey accessKey) {
+        return "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe="
+                + accessKey.value();
+    }
+
     /** Accepts only SEFAZ-SP hosts and always uses HTTPS, whatever scheme the QR code printed. */
     static URI trustedUri(String qrCodeUrl) {
         URI parsed;

@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage, KEY_ONLY_LINK_MESSAGE } from '../../api/messages';
-import { isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
+import { accessKeyFromLink, isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
 import { useImportReceipt } from '../../receipts/queries';
 import { Button, ErrorBanner, TextField } from '../../ui/components';
 import { colors, spacing } from '../../ui/theme';
@@ -18,16 +18,20 @@ export default function ScanScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pastedUrl, setPastedUrl] = useState('');
   const [scanPaused, setScanPaused] = useState(false);
+  // Key of a key-only link: offers opening the SEFAZ page to solve the captcha
+  const [captchaKey, setCaptchaKey] = useState<string | null>(null);
   // Camera callbacks fire many times per second, before state updates land; only the first read counts
   const handled = useRef(false);
 
   function submit(qrCodeUrl: string) {
+    setCaptchaKey(null);
     if (!isReceiptQrCode(qrCodeUrl)) {
       setError(NOT_A_RECEIPT);
       return;
     }
     if (isKeyOnlyLink(qrCodeUrl)) {
       setError(KEY_ONLY_LINK_MESSAGE);
+      setCaptchaKey(accessKeyFromLink(qrCodeUrl));
       return;
     }
     setError(null);
@@ -84,6 +88,12 @@ export default function ScanScreen() {
         <Text style={styles.hint}>Aponte a câmera para o QR code impresso no fim do cupom fiscal.</Text>
 
         <ErrorBanner message={error} />
+        {captchaKey && (
+          <Button
+            title="Abrir na SEFAZ e resolver o captcha"
+            onPress={() => router.push({ pathname: '/sefaz', params: { key: captchaKey } })}
+          />
+        )}
         {waitingForRetry && <Button title="Escanear novamente" variant="secondary" onPress={scanAgain} />}
 
         <View style={styles.manual}>
