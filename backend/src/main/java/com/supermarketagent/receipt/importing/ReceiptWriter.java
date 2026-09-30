@@ -2,6 +2,7 @@ package com.supermarketagent.receipt.importing;
 
 import com.supermarketagent.catalog.Store;
 import com.supermarketagent.catalog.StoreProduct;
+import com.supermarketagent.catalog.StoreNames;
 import com.supermarketagent.catalog.StoreProductRepository;
 import com.supermarketagent.catalog.StoreRepository;
 import com.supermarketagent.receipt.persistence.Receipt;
@@ -32,8 +33,9 @@ class ReceiptWriter {
     long save(long userId, FetchedReceipt fetched, ZoneId timeZone, String sourceUrl) {
         ParsedReceipt parsed = fetched.receipt();
         ParsedReceipt.Store parsedStore = parsed.store();
-        long storeId = stores.upsert(
-                parsedStore.cnpj(), parsedStore.name(), parsedStore.address(), parsed.accessKey().stateCode());
+        long storeId = stores.upsert(parsedStore.cnpj(), parsedStore.name(),
+                StoreNames.displayName(parsedStore.cnpj(), parsedStore.name()), parsedStore.address(),
+                parsed.accessKey().stateCode());
         Store store = stores.getReferenceById(storeId);
 
         Receipt receipt = new Receipt(
