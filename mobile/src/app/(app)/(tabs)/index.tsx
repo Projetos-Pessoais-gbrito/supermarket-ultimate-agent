@@ -55,7 +55,7 @@ export default function DashboardScreen() {
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} />}>
         <PeriodSelector value={period} onChange={choosePeriod} />
         {error && <ErrorBanner message={errorMessage(error)} />}
 

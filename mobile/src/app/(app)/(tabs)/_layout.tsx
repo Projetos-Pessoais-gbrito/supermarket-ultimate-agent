@@ -1,7 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
+import type { ComponentProps } from 'react';
+import type { ColorValue } from 'react-native';
 
 import { useColors } from '../../../ui/theme';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+/** Tab bar colors can be platform color objects or null; icons need a plain color string. */
+function tabIcon(name: IconName) {
+  return function TabIcon({ color, size }: { color: ColorValue; size: number }) {
+    return <Ionicons name={name} color={typeof color === 'string' ? color : colors.textMuted} size={size} />;
+  };
+}
 
 export default function TabsLayout() {
   const colors = useColors();
@@ -17,7 +28,7 @@ export default function TabsLayout() {
         options={{
           title: 'Início',
           headerTitle: 'Resumo',
-          tabBarIcon: ({ color, size }) => <Ionicons name="stats-chart" color={color} size={size} />,
+          tabBarIcon: tabIcon('stats-chart'),
         }}
       />
       <Tabs.Screen
@@ -25,7 +36,7 @@ export default function TabsLayout() {
         options={{
           title: 'Notas',
           headerTitle: 'Minhas notas',
-          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" color={color} size={size} />,
+          tabBarIcon: tabIcon('receipt-outline'),
         }}
       />
       <Tabs.Screen
@@ -40,7 +51,7 @@ export default function TabsLayout() {
         name="account"
         options={{
           title: 'Conta',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
+          tabBarIcon: tabIcon('person-circle-outline'),
         }}
       />
     </Tabs>
