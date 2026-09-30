@@ -55,11 +55,21 @@ class SpNfceProviderTest {
                 .andExpect(header(HttpHeaders.USER_AGENT, "test-agent"))
                 .andRespond(withSuccess(fixture(), MediaType.TEXT_HTML));
 
-        var receipt = provider.fetch(new AccessKey(KEY), QR_URL);
+        var receipt = provider.fetch(new AccessKey(KEY), QR_URL).receipt();
 
         assertThat(receipt.items()).hasSize(10);
         assertThat(receipt.totalAmount()).isEqualByComparingTo("52.92");
         server.verify();
+    }
+
+    @Test
+    void returnsHtmlWithoutBuyerData() {
+        String pageWithBuyer = fixture().replace("Consumidor não identificado", "CPF: 123.456.789-09 MARIA DA SILVA");
+        server.expect(requestTo(EXPECTED_REQUEST)).andRespond(withSuccess(pageWithBuyer, MediaType.TEXT_HTML));
+
+        String html = provider.fetch(new AccessKey(KEY), QR_URL).sanitizedHtml();
+
+        assertThat(html).doesNotContain("123.456.789-09", "MARIA DA SILVA").contains("PAO FRANCES");
     }
 
     @Test
@@ -91,7 +101,7 @@ class SpNfceProviderTest {
         server.expect(requestTo(EXPECTED_REQUEST)).andRespond(withServerError());
         server.expect(requestTo(EXPECTED_REQUEST)).andRespond(withSuccess(fixture(), MediaType.TEXT_HTML));
 
-        assertThat(provider.fetch(new AccessKey(KEY), QR_URL).items()).hasSize(10);
+        assertThat(provider.fetch(new AccessKey(KEY), QR_URL).receipt().items()).hasSize(10);
         server.verify();
     }
 

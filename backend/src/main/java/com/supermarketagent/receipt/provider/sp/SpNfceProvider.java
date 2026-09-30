@@ -1,6 +1,8 @@
 package com.supermarketagent.receipt.provider.sp;
 
 import com.supermarketagent.receipt.domain.AccessKey;
+import com.supermarketagent.receipt.privacy.PersonalDataSanitizer;
+import com.supermarketagent.receipt.provider.FetchedReceipt;
 import com.supermarketagent.receipt.provider.NfcePageParseException;
 import com.supermarketagent.receipt.provider.NfceProvider;
 import com.supermarketagent.receipt.provider.ParsedReceipt;
@@ -10,6 +12,7 @@ import com.supermarketagent.receipt.provider.UntrustedReceiptUrlException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,6 +25,8 @@ import org.springframework.web.client.RestClient;
 /** Imports NFC-e from the SEFAZ-SP public QR code consultation page. */
 @Component
 public class SpNfceProvider implements NfceProvider {
+
+    private static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
 
     static final Set<String> TRUSTED_HOSTS = Set.of("www.nfce.fazenda.sp.gov.br", "nfce.fazenda.sp.gov.br");
 
@@ -42,12 +47,18 @@ public class SpNfceProvider implements NfceProvider {
     }
 
     @Override
-    public ParsedReceipt fetch(AccessKey accessKey, String qrCodeUrl) {
-        ParsedReceipt receipt = parser.parse(download(trustedUri(qrCodeUrl)));
+    public ZoneId timeZone() {
+        return SAO_PAULO;
+    }
+
+    @Override
+    public FetchedReceipt fetch(AccessKey accessKey, String qrCodeUrl) {
+        String html = PersonalDataSanitizer.sanitizeHtml(download(trustedUri(qrCodeUrl)));
+        ParsedReceipt receipt = parser.parse(html);
         if (!receipt.accessKey().equals(accessKey)) {
             throw new NfcePageParseException("SEFAZ returned a different receipt than the one requested");
         }
-        return receipt;
+        return new FetchedReceipt(receipt, html);
     }
 
     /** Accepts only SEFAZ-SP hosts and always uses HTTPS, whatever scheme the QR code printed. */
