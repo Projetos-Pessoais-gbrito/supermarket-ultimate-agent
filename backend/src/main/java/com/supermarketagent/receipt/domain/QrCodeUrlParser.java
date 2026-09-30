@@ -28,6 +28,20 @@ public final class QrCodeUrlParser {
         return AccessKey.parse(key);
     }
 
+    /**
+     * True for links that only carry the access key, like the SEFAZ "consulta por chave" page
+     * ({@code ConsultaPublica.aspx?chNFe=<key>}). SEFAZ protects those with a captcha; only QR code
+     * links, which carry the version and a verification hash, open the receipt directly.
+     */
+    public static boolean isKeyOnlyLink(String url) {
+        String query = rawQuery(url);
+        Optional<String> p = queryParam(query, "p");
+        if (p.isPresent()) {
+            return p.get().split("\\|").length < 2;
+        }
+        return queryParam(query, "chNFe").isPresent() && queryParam(query, "cHashQRCode").isEmpty();
+    }
+
     private static String rawQuery(String url) {
         if (url == null || url.isBlank()) {
             throw new InvalidAccessKeyException("QR code URL must not be empty");
