@@ -57,3 +57,41 @@ export type ProblemDetail = {
   title?: string;
   detail?: string;
 };
+
+// Insights (see backend /api/insights)
+
+export type MonthTotal = { month: string; total: number; receiptCount: number };
+
+export type SpendingInsight = {
+  currentMonth: MonthTotal;
+  previousMonth: MonthTotal;
+  changePercent: number | null;
+  monthly: MonthTotal[];
+  byStore: { storeId: number; storeName: string; total: number; receiptCount: number }[];
+  byCategory: { category: string | null; label: string; total: number }[];
+};
+
+export type SavingsInsight = {
+  days: number;
+  potentialSavings: number;
+  comparedSpending: number;
+  products: {
+    productId: number;
+    name: string;
+    timesBought: number;
+    totalPaid: number;
+    bestUnitPrice: number;
+    bestStoreName: string;
+    extraPaid: number;
+  }[];
+};
+
+export type BestDayGroup = { key: string; label: string; percentVsAverage: number; samples: number };
+
+export type BestDayInsight = {
+  comparableItems: number;
+  bestPeriod: BestDayGroup | null;
+  byPeriodOfMonth: BestDayGroup[];
+  bestWeekday: BestDayGroup | null;
+  byWeekday: BestDayGroup[];
+};

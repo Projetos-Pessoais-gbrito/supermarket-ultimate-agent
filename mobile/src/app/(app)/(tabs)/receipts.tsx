@@ -1,12 +1,12 @@
-import { Link, Stack, useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { errorMessage } from '../../api/messages';
-import type { ReceiptSummary } from '../../api/types';
-import { formatCurrency, formatDateTime } from '../../format';
-import { useReceiptList } from '../../receipts/queries';
-import { Button, ErrorBanner } from '../../ui/components';
-import { colors, spacing } from '../../ui/theme';
+import { errorMessage } from '../../../api/messages';
+import type { ReceiptSummary } from '../../../api/types';
+import { formatCurrency, formatDateTime } from '../../../format';
+import { useReceiptList } from '../../../receipts/queries';
+import { Button, ErrorBanner } from '../../../ui/components';
+import { colors, spacing } from '../../../ui/theme';
 
 export default function ReceiptListScreen() {
   const router = useRouter();
@@ -16,7 +16,6 @@ export default function ReceiptListScreen() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Minhas notas' }} />
       {isPending ? (
         <ActivityIndicator style={styles.loading} size="large" color={colors.primary} />
       ) : (
