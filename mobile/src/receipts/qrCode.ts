@@ -8,6 +8,12 @@ export function isReceiptQrCode(data: string): boolean {
   return /^https?:\/\/[^\s]+\?/i.test(value) && /[?&](p|chNFe)=\d{44}/i.test(value);
 }
 
+/** The 44-digit access key in a receipt link, or null. */
+export function accessKeyFromLink(data: string): string | null {
+  const match = /[?&](?:p|chNFe)=(\d{44})/i.exec(data.trim());
+  return match ? match[1] : null;
+}
+
 /**
  * Links with only the access key (e.g. SEFAZ "consulta por chave": ConsultaPublica.aspx?chNFe=...)
  * need a captcha on the SEFAZ site. QR code links carry a version and a verification hash.
