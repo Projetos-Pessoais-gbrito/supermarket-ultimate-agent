@@ -5,7 +5,8 @@ or any other store in Brazil. The app imports every item from SEFAZ, stores your
 history and turns it into insights: the best day of the month to buy, how much you could
 have saved, the cheapest store for each product, and more.
 
-> Status: early development. See the [roadmap](docs/ROADMAP.md).
+> Status: v1.0.0. See the [roadmap](docs/ROADMAP.md) and the [changelog](CHANGELOG.md).
+> Try it on your phone with Expo Go: [testing guide](docs/TESTING-ON-PHONE.md).
 
 ## Repository layout
 
@@ -26,4 +27,4 @@ have saved, the cheapest store for each product, and more.
 
 | State | Status  |
 |-------|---------|
-| SP    | planned |
+| SP    | supported (NFC-e QR codes) |
