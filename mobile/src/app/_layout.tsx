@@ -1,7 +1,7 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { ApiError } from '../api/client';
@@ -24,7 +24,7 @@ export default function RootLayout() {
  * session itself is over, refresh() signs the user out.
  */
 function QueryProvider({ children }: { children: ReactNode }) {
-  const { refresh } = useAuth();
+  const { refresh, status } = useAuth();
   const [queryClient] = useState(() => {
     const client: QueryClient = new QueryClient({
       queryCache: new QueryCache({ onError: error => void renewAfter401(error) }),
@@ -43,6 +43,14 @@ function QueryProvider({ children }: { children: ReactNode }) {
     }
     return client;
   });
+
+  // Never show one user's cached receipts or insights to the next person who logs in on this phone
+  useEffect(() => {
+    if (status === 'signedOut') {
+      queryClient.clear();
+    }
+  }, [status, queryClient]);
+
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
 }
 
