@@ -58,3 +58,20 @@ describe('errorMessage', () => {
     expect(errorMessage(new Error('boom'))).toBe('Algo deu errado. Tente novamente.');
   });
 });
+
+describe('error codes', () => {
+  beforeEach(() => fetchMock.mockReset());
+
+  it('keeps the problem code so screens can explain specific errors', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(422, { status: 422, detail: 'key only', code: 'KEY_ONLY_LINK' }));
+
+    await expect(apiRequest('/api/receipts', { method: 'POST', body: {} })).rejects.toMatchObject({
+      status: 422,
+      code: 'KEY_ONLY_LINK',
+    });
+  });
+
+  it('explains key-only links in Portuguese', () => {
+    expect(errorMessage(new ApiError(422, 'key only', 'KEY_ONLY_LINK'))).toContain('captcha');
+  });
+});

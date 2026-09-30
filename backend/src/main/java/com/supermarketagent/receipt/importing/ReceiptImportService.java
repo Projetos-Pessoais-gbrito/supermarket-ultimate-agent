@@ -3,6 +3,7 @@ package com.supermarketagent.receipt.importing;
 import com.supermarketagent.catalog.ProductMatcher;
 import com.supermarketagent.receipt.domain.AccessKey;
 import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
+import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.domain.QrCodeUrlParser;
 import com.supermarketagent.receipt.persistence.ReceiptRepository;
 import com.supermarketagent.receipt.privacy.PersonalDataSanitizer;
@@ -41,6 +42,10 @@ public class ReceiptImportService {
         AccessKey accessKey = QrCodeUrlParser.extractAccessKey(qrCodeUrl);
         if (!accessKey.isNfce()) {
             throw new InvalidAccessKeyException("Only NFC-e (consumer receipt, model 65) can be imported");
+        }
+        // Checked before the "already imported" shortcut too, so the answer does not depend on history
+        if (QrCodeUrlParser.isKeyOnlyLink(qrCodeUrl)) {
+            throw new KeyOnlyLinkException();
         }
 
         var existing = receipts.findIdByUserIdAndAccessKey(userId, accessKey.value());

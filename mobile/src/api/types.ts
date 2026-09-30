@@ -61,6 +61,8 @@ export type ProblemDetail = {
   status: number;
   title?: string;
   detail?: string;
+  /** Machine-readable reason for errors the app explains specifically, e.g. KEY_ONLY_LINK */
+  code?: string;
 };
 
 // Insights (see backend /api/insights)

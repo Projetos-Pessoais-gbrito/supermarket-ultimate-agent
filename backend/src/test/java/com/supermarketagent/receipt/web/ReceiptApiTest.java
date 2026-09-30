@@ -114,6 +114,14 @@ class ReceiptApiTest {
     }
 
     @Test
+    void explainsThatKeyOnlyLinksNeedTheQrCode() throws Exception {
+        importReceipt(ana, "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe="
+                + FixtureSpProvider.KEY)
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("KEY_ONLY_LINK"));
+    }
+
+    @Test
     void reportsSefazOutageAsServiceUnavailable() throws Exception {
         provider.failWith(new SefazUnavailableException("down", null));
 
