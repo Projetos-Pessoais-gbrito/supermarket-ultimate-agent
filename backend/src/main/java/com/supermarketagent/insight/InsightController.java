@@ -46,7 +46,7 @@ class InsightController {
 
     @GetMapping("/spending")
     SpendingInsight spending(@AuthenticationPrincipal Jwt jwt,
-                             @RequestParam(defaultValue = "6") @Min(1) @Max(24) int months) {
+                             @RequestParam(defaultValue = "6") @Min(InsightWindow.ALL) @Max(120) int months) {
         return spending.spending(userId(jwt), currentMonth(), months);
     }
 
@@ -65,13 +65,13 @@ class InsightController {
 
     @GetMapping("/savings")
     SavingsInsight savings(@AuthenticationPrincipal Jwt jwt,
-                           @RequestParam(defaultValue = "90") @Min(7) @Max(365) int days) {
-        return savings.savings(userId(jwt), clock.instant(), days);
+                           @RequestParam(defaultValue = "3") @Min(InsightWindow.ALL) @Max(120) int months) {
+        return savings.savings(userId(jwt), currentMonth(), months);
     }
 
     @GetMapping("/best-day")
     BestDayInsight bestDay(@AuthenticationPrincipal Jwt jwt,
-                           @RequestParam(defaultValue = "365") @Min(30) @Max(730) int days) {
+                           @RequestParam(defaultValue = "365") @Min(30) @Max(3650) int days) {
         return bestDay.bestDay(userId(jwt), clock.instant(), days);
     }
 
@@ -90,7 +90,7 @@ class InsightController {
     /** Products of one category ({@code none} = not categorized yet), same months as the spending insight. */
     @GetMapping("/categories/{category}/products")
     CategoryProducts categoryProducts(@AuthenticationPrincipal Jwt jwt, @PathVariable String category,
-                                      @RequestParam(defaultValue = "6") @Min(1) @Max(24) int months) {
+                                      @RequestParam(defaultValue = "6") @Min(InsightWindow.ALL) @Max(120) int months) {
         return categoryProducts.products(userId(jwt), category, currentMonth(), months)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unknown category"));
     }
