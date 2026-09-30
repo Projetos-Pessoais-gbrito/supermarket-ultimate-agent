@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-nativ
 import { errorMessage } from '../../../api/messages';
 import type { CategoryProducts } from '../../../api/types';
 import { formatCurrency, formatDate } from '../../../format';
+import { parsePeriod, periodDescription } from '../../../insights/period';
 import { useCategoryProducts } from '../../../insights/queries';
 import { ErrorBanner } from '../../../ui/components';
 import { colors, spacing } from '../../../ui/theme';
@@ -11,8 +12,9 @@ import { colors, spacing } from '../../../ui/theme';
 type CategoryProduct = CategoryProducts['products'][number];
 
 export default function CategoryProductsScreen() {
-  const { category } = useLocalSearchParams<{ category: string }>();
-  const { data, error, isPending } = useCategoryProducts(category);
+  const { category, months } = useLocalSearchParams<{ category: string; months?: string }>();
+  const period = parsePeriod(months);
+  const { data, error, isPending } = useCategoryProducts(category, period);
 
   return (
     <View style={styles.container}>
@@ -30,7 +32,7 @@ export default function CategoryProductsScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             <View style={styles.header}>
-              <Text style={styles.muted}>Total nos últimos 6 meses</Text>
+              <Text style={styles.muted}>Total · {periodDescription(period)}</Text>
               <Text style={styles.total}>{formatCurrency(data.total)}</Text>
               <Text style={styles.muted}>
                 {data.products.length} {data.products.length === 1 ? 'produto' : 'produtos'}
