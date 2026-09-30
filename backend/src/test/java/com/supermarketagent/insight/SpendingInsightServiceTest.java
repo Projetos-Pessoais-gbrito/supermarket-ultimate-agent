@@ -127,6 +127,23 @@ class SpendingInsightServiceTest {
     }
 
     @Test
+    void allCoversEveryMonthSinceTheFirstReceipt() {
+        data.receipt(ana, assai, "2026-03-13T15:00:00Z", rice, "1", "25.00");
+        data.receipt(ana, assai, "2026-09-10T15:00:00Z", rice, "1", "25.00");
+
+        SpendingInsight insight = service.spending(ana, SEPTEMBER, InsightWindow.ALL);
+
+        assertThat(insight.monthly()).extracting(MonthTotal::month).first().isEqualTo("2026-03");
+        assertThat(insight.monthly()).hasSize(7);
+        assertThat(insight.byStore().getFirst().total()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void allWithoutReceiptsShowsJustTheCurrentMonth() {
+        assertThat(service.spending(ana, SEPTEMBER, InsightWindow.ALL).monthly()).hasSize(1);
+    }
+
+    @Test
     void endpointRequiresAuthentication() throws Exception {
         mvc.perform(get("/api/insights/spending")).andExpect(status().isUnauthorized());
     }
