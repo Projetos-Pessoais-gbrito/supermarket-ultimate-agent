@@ -200,7 +200,13 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (period:
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
             style={[styles.period, selected && styles.periodSelected]}>
-            <Text style={[styles.periodText, selected && styles.periodTextSelected]}>{option.label}</Text>
+            <Text
+              style={[styles.periodText, selected && styles.periodTextSelected]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}>
+              {option.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -300,7 +306,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 3,
   },
-  period: { flex: 1, minHeight: 36, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  period: {
+    flex: 1,
+    minHeight: 36,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   periodSelected: { backgroundColor: colors.background },
   periodText: { fontSize: 14, color: colors.textMuted },
   periodTextSelected: { color: colors.text, fontWeight: '600' },
