@@ -19,6 +19,7 @@ have saved, the cheapest store for each product, and more.
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Publishing (Render + Android APK)](docs/DEPLOY.md)
 - [Roadmap](docs/ROADMAP.md)
 - [Architecture Decision Records](docs/adr/)
 - [Contributing (git-flow, commit conventions)](CONTRIBUTING.md)
