@@ -62,8 +62,9 @@ npx eas-cli login
 npx eas-cli init        # links the project; commit the projectId it adds to app.json
 ```
 
-If Render gave the API a different address, update `EXPO_PUBLIC_API_URL` in `mobile/eas.json`.
-It must be the `https://` address: Android blocks plain `http` in installed apps.
+If Render gave the API a different address, update `EXPO_PUBLIC_API_URL` in `mobile/eas.json` and
+`DEPLOYED_API_URL` in `mobile/src/config.ts`. It must be the `https://` address: Android blocks plain
+`http` in installed apps.
 
 Build:
 
@@ -75,7 +76,26 @@ The build runs on Expo's servers (about 15 minutes on the free tier). At the end
 link and a QR code: open it on the phone, download the APK and allow installing from that source.
 Send the same link to anyone else who wants the app.
 
-Rebuild after changing the app or the API address. Backend-only changes need no new APK.
+Backend-only changes need no new APK.
+
+## 5. Updating the app
+
+Most changes reach phones **without a new APK**, through [EAS Update](https://docs.expo.dev/eas-update/introduction/)
+(free up to 1,000 monthly users). After merging into `main`:
+
+```bash
+cd mobile
+npm run publish-update -- --message "Clearer savings screen"
+```
+
+The app downloads the update in the background when it opens (or comes back to the front) and
+shows **"Nova versão do app pronta · Atualizar"**: one tap restarts it on the new version.
+
+**A new APK is still needed** when the native side changes: a new library with native code,
+permissions or plugins in `app.json`, or an Expo SDK upgrade. `runtimeVersion` uses the
+`fingerprint` policy, so an update only reaches APKs built from the same native code: if
+`publish-update` warns that no build matches, build a new APK (section 4) and share it.
+Bump `version` in `app.json` first so people can tell the APKs apart.
 
 ## Later
 
