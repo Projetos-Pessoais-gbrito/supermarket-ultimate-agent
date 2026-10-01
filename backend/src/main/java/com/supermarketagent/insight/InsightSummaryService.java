@@ -30,6 +30,11 @@ import org.springframework.stereotype.Service;
 public class InsightSummaryService {
 
     static final int MAX_TIPS = 3;
+    private static final int MAX_STORES_IN_FACTS = 3;
+    private static final Map<String, String> ON_WEEKDAY = Map.of(
+            "MONDAY", "às segundas-feiras", "TUESDAY", "às terças-feiras", "WEDNESDAY", "às quartas-feiras",
+            "THURSDAY", "às quintas-feiras", "FRIDAY", "às sextas-feiras", "SATURDAY", "aos sábados",
+            "SUNDAY", "aos domingos");
     private static final int MAX_TIP_LENGTH = 200;
     /** Bump when the prompt changes, so stored tips are rewritten with the new instructions. */
     static final String PROMPT_VERSION = "2";
@@ -48,17 +53,17 @@ public class InsightSummaryService {
     private final AiClient ai;
     private final SpendingInsightService spending;
     private final SavingsInsightService savings;
-    private final BestDayInsightService bestDay;
+    private final BestTimeInsightService bestTime;
     private final InflationInsightService inflation;
     private final InsightSummaryStore store;
 
     InsightSummaryService(AiClient ai, SpendingInsightService spending, SavingsInsightService savings,
-                          BestDayInsightService bestDay, InflationInsightService inflation,
+                          BestTimeInsightService bestTime, InflationInsightService inflation,
                           InsightSummaryStore store) {
         this.ai = ai;
         this.spending = spending;
         this.savings = savings;
-        this.bestDay = bestDay;
+        this.bestTime = bestTime;
         this.inflation = inflation;
         this.store = store;
     }
@@ -125,10 +130,20 @@ public class InsightSummaryService {
                     + money(product.extraPaid()) + " a mais no total).");
         }
 
-        BestDayInsight best = bestDay.bestDay(userId, now, 365);
-        if (best.bestPeriod() != null && best.bestPeriod().percentVsAverage().signum() < 0) {
-            facts.add("Período do mês com preços mais baixos: " + best.bestPeriod().label().toLowerCase(PT_BR) + " ("
-                    + signedPercent(best.bestPeriod().percentVsAverage()) + " em relação à média).");
+        // Only patterns the statistics trust, so the tips never invent a "best day" out of chance
+        for (var shop : bestTime.bestTime(userId, now, 365).stores().stream().limit(MAX_STORES_IN_FACTS).toList()) {
+            var period = shop.periodOfMonth();
+            if (period.status() == BestTimeInsight.Status.PATTERN) {
+                facts.add("No " + shop.storeName() + ", os preços são " + percent(period.percentCheaper())
+                        + " mais baixos nos " + period.best().label().toLowerCase(PT_BR) + " do que no resto do mês.");
+            } else if (period.status() == BestTimeInsight.Status.NO_PATTERN) {
+                facts.add("No " + shop.storeName() + ", os preços são parecidos em qualquer época do mês.");
+            }
+            var weekday = shop.weekday();
+            if (weekday.status() == BestTimeInsight.Status.PATTERN) {
+                facts.add("No " + shop.storeName() + ", os preços são " + percent(weekday.percentCheaper())
+                        + " mais baixos " + ON_WEEKDAY.get(weekday.best().key()) + " do que nos outros dias.");
+            }
         }
 
         var latest = inflation.inflation(userId, currentMonth, 1);
@@ -187,6 +202,11 @@ public class InsightSummaryService {
 
     private static String money(BigDecimal value) {
         return NumberFormat.getCurrencyInstance(PT_BR).format(value).replace('\u00a0', ' ');
+    }
+
+    /** 6.2 → "6,2%" */
+    private static String percent(BigDecimal value) {
+        return value.abs().toPlainString().replace('.', ',') + "%";
     }
 
     private static String signedPercent(BigDecimal value) {

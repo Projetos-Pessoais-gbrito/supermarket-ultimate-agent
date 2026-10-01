@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 
 import { errorMessage } from '../../../api/messages';
 import type {
-  BestDayInsight,
+  BestTimeInsight,
   InflationInsight,
   InsightSummary,
   SavingsInsight,
@@ -21,7 +21,8 @@ import {
   type Period,
 } from '../../../insights/period';
 import { monthComparisonText } from '../../../insights/comparison';
-import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
+import { bestTimeTile } from '../../../insights/bestTimeText';
+import { useBestTime, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
 import { makeStyles, spacing, useColors } from '../../../ui/theme';
@@ -41,15 +42,15 @@ export default function DashboardScreen() {
 
   const spending = useSpending(period);
   const savings = useSavings(period);
-  const bestDay = useBestDay(period);
+  const bestTime = useBestTime(period);
   const inflation = useInflation();
   // Optional AI tips: never block the dashboard or show their errors
   const summary = useSummary();
 
-  const queries = [spending, savings, bestDay, inflation, summary];
+  const queries = [spending, savings, bestTime, inflation, summary];
   const refreshing = queries.some(query => query.isRefetching);
   const refresh = () => Promise.all(queries.map(query => query.refetch()));
-  const error = spending.error ?? savings.error ?? bestDay.error ?? inflation.error;
+  const error = spending.error ?? savings.error ?? bestTime.error ?? inflation.error;
   const hasPurchases = spending.data?.monthly.some(month => month.receiptCount > 0) ?? false;
 
   return (
@@ -72,7 +73,7 @@ export default function DashboardScreen() {
               <BudgetCard />
               <View style={styles.tiles}>
                 <SavingsTile savings={savings.data} period={period} />
-                <BestTimeTile bestDay={bestDay.data} />
+                <BestTimeTile bestTime={bestTime.data} period={period} />
               </View>
               {inflation.data && <InflationCard inflation={inflation.data} />}
               <Card title="Gastos por mês" subtitle={periodDescription(period)}>
@@ -243,24 +244,21 @@ function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined;
   );
 }
 
-function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
+function BestTimeTile({ bestTime, period }: { bestTime: BestTimeInsight | undefined; period: Period }) {
   const styles = useStyles();
-  const best = bestDay?.bestPeriod;
+  const router = useRouter();
+  const tile = bestTime ? bestTimeTile(bestTime) : null;
   return (
-    <View style={[styles.card, styles.tile]}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/best-time', params: { months: String(period) } })}
+      accessibilityRole="button"
+      accessibilityHint="Mostra a melhor época em cada mercado"
+      style={({ pressed }) => [styles.card, styles.tile, pressed && styles.pressed]}>
       <Text style={styles.cardLabel}>Melhor época</Text>
-      <Text style={styles.tileValue}>{bestDay ? (best ? best.label : 'Ainda sem dados') : '…'}</Text>
-      <Text style={styles.muted}>
-        {best
-          ? best.percentVsAverage < 0
-            ? `preços ${formatPercent(best.percentVsAverage)} abaixo da sua média`
-            : 'seus preços variam pouco ao longo do mês'
-          : 'Precisamos de mais notas ao longo do mês para descobrir'}
-      </Text>
-      {bestDay?.bestWeekday && bestDay.bestWeekday.percentVsAverage < 0 && (
-        <Text style={styles.muted}>Melhor dia: {bestDay.bestWeekday.label}</Text>
-      )}
-    </View>
+      <Text style={styles.tileValue}>{tile ? tile.title : '…'}</Text>
+      {tile && <Text style={styles.muted}>{tile.detail}</Text>}
+      <Text style={styles.tileLink}>Ver por mercado ›</Text>
+    </Pressable>
   );
 }
 

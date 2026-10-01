@@ -138,14 +138,40 @@ export type SavingsDetails = {
   }[];
 };
 
-export type BestDayGroup = { key: string; label: string; percentVsAverage: number; samples: number };
+/** PATTERN only when the gap is unlikely to be chance (backend BestTimeStats). */
+export type BestTimeStatus = 'PATTERN' | 'NO_PATTERN' | 'NOT_ENOUGH_DATA';
 
-export type BestDayInsight = {
-  comparableItems: number;
-  bestPeriod: BestDayGroup | null;
-  byPeriodOfMonth: BestDayGroup[];
-  bestWeekday: BestDayGroup | null;
-  byWeekday: BestDayGroup[];
+export type BestTimeGroup = {
+  /** e.g. DAYS_1_10 or WEDNESDAY */
+  key: string;
+  label: string;
+  /** Against the usual price at the store: -3.5 = 3.5% cheaper */
+  percentVsStoreAverage: number;
+  samples: number;
+};
+
+export type BestTimeFinding = {
+  status: BestTimeStatus;
+  /** Only with PATTERN */
+  best: BestTimeGroup | null;
+  /** How much cheaper `best` is than the other groups at the same store */
+  percentCheaper: number | null;
+  /** Calendar order */
+  groups: BestTimeGroup[];
+};
+
+export type StoreBestTime = {
+  storeId: number;
+  storeName: string;
+  comparablePurchases: number;
+  periodOfMonth: BestTimeFinding;
+  weekday: BestTimeFinding;
+};
+
+export type BestTimeInsight = {
+  days: number;
+  /** Biggest pattern first */
+  stores: StoreBestTime[];
 };
 
 export type InflationInsight = {
