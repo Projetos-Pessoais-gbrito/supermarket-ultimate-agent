@@ -1,25 +1,22 @@
 # Publishing: backend on Render, app as an Android APK
 
-The API and its database run on [Render](https://render.com) (described in `render.yaml`).
-The app is built by [EAS](https://expo.dev/eas) into an APK that anyone can install.
+Everything runs on free plans:
 
-## 1. Backend on Render
+- the API on [Render](https://render.com) (described in `render.yaml`);
+- the database on [Neon](https://neon.tech) (free PostgreSQL, 0.5 GB, scales to zero when idle);
+- the app is built by [EAS](https://expo.dev/eas) into an APK that anyone can install.
 
-1. Merge the code into `main`. Render deploys from `main` (`render.yaml`, `branch: main`).
-2. On Render: **New → Blueprint**, pick this GitHub repository and confirm.
-   - It creates `supermarket-agent-api` (Docker, free plan) and `supermarket-db` (PostgreSQL 16,
-     `basic-256mb`, about US$ 6/month; free databases are deleted after 30 days).
-   - It asks for `GEMINI_API_KEY`. `JWT_SECRET` is generated, and the database settings are filled in.
-3. Wait for the deploy, then open `https://<service>.onrender.com/actuator/health`. It should
-   say `UP`. Note the address: Render adds a suffix when the name is already taken.
+## 1. Database on Neon
 
-The free web instance sleeps after 15 minutes without requests; the next request wakes it in
-about a minute.
+1. Create a Neon project in **AWS US East (N. Virginia)**, next to Render's Virginia region,
+   with a database `supermarket`.
+2. Open **Connect** with **connection pooling off** and note the host
+   (`ep-....us-east-1.aws.neon.tech`), the role and the password.
 
 ## 2. Move your local data
 
-Do this once, right after the first deploy. The backup carries the Flyway history, so the API
-sees an up-to-date schema and does not migrate again.
+The backup carries the Flyway history, so the API sees an up-to-date schema and does not
+migrate again.
 
 1. Make a backup of the local database (Docker running, `docker compose up -d`):
 
@@ -31,19 +28,31 @@ sees an up-to-date schema and does not migrate again.
    Keep backups **out of the repository**: they hold personal data and password hashes
    (`*.dump` is ignored by git).
 
-2. On Render, **suspend** `supermarket-agent-api` so nothing writes during the restore.
-3. Copy the database's **External Database URL** (`supermarket-db` → *Connect*).
-4. Restore. `--clean` replaces the empty tables the first deploy created:
+2. Restore it into Neon (`--clean` replaces anything already there):
 
    ```bash
-   docker run --rm -v "C:/Users/user/Downloads/supermarket-backups:/b" postgres:16 \
-     pg_restore --clean --if-exists --no-owner --no-privileges \
-     -d "<External Database URL>?sslmode=require" /b/supermarket.dump
+   MSYS_NO_PATHCONV=1 docker run --rm -v "C:/Users/user/Downloads/supermarket-backups:/b" postgres:17      pg_restore --clean --if-exists --no-owner --no-privileges      -d "postgresql://<role>:<password>@<host>/supermarket?sslmode=require" /b/supermarket.dump
    ```
 
-5. **Resume** the API and log in with your usual account.
+   If the API is already deployed, suspend it on Render during the restore and resume it after.
 
-## 3. Android APK
+## 3. Backend on Render
+
+1. Merge the code into `main`. Render deploys from `main` (`render.yaml`, `branch: main`).
+2. On Render: **New → Blueprint**, pick this GitHub repository and confirm.
+   - It creates `supermarket-agent-api` (Docker, free plan).
+   - It asks for `POSTGRES_HOST`, `POSTGRES_USER` and `POSTGRES_PASSWORD` (from Neon) and
+     `GEMINI_API_KEY`. `JWT_SECRET` is generated; the port, database name and `sslmode=require`
+     are already set.
+3. Wait for the deploy, then open `https://<service>.onrender.com/actuator/health`. It should
+   say `UP`. Note the address: Render adds a suffix when the name is already taken.
+
+The free web instance sleeps after 15 minutes without requests; the next request wakes it in
+about a minute. To keep it awake, have a free monitor such as [cron-job.org](https://cron-job.org)
+call `/actuator/health/liveness` every 10 minutes. Use the liveness URL: it does not query the
+database, so Neon can still scale to zero and stay within its free compute hours.
+
+## 4. Android APK
 
 One-time setup (free Expo account):
 
