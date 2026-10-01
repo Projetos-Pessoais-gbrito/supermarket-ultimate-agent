@@ -108,6 +108,36 @@ export type SavingsInsight = {
   }[];
 };
 
+/** A purchase that cost more than the cheapest one of the same product nearby in time. */
+export type SavingsPurchase = {
+  receiptId: number;
+  issuedAt: string;
+  storeName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  /** (unitPrice - bestUnitPrice) x quantity */
+  extraPaid: number;
+  /** The reference: lowest price paid within comparisonWindowDays, before or after */
+  bestUnitPrice: number;
+  bestStoreName: string;
+  bestIssuedAt: string;
+};
+
+/** The purchases behind SavingsInsight.potentialSavings (same total). */
+export type SavingsDetails = {
+  months: number;
+  comparisonWindowDays: number;
+  potentialSavings: number;
+  products: {
+    productId: number;
+    name: string;
+    extraPaid: number;
+    /** Newest first */
+    purchases: SavingsPurchase[];
+  }[];
+};
+
 export type BestDayGroup = { key: string; label: string; percentVsAverage: number; samples: number };
 
 export type BestDayInsight = {

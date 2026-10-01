@@ -12,6 +12,7 @@ import type {
   ReceiptDetails,
   ReceiptFilters,
   ReceiptListPage,
+  SavingsDetails,
   SavingsInsight,
   SpendingInsight,
   TokenResponse,
@@ -97,6 +98,8 @@ export const insightsApi = {
   /** months = 0 means the whole history */
   savings: (token: string, months = 3) =>
     apiRequest<SavingsInsight>(`/api/insights/savings?months=${months}`, { token }),
+  savingsDetails: (token: string, months = 3) =>
+    apiRequest<SavingsDetails>(`/api/insights/savings/details?months=${months}`, { token }),
   bestDay: (token: string, days = 365) => apiRequest<BestDayInsight>(`/api/insights/best-day?days=${days}`, { token }),
   inflation: (token: string, months = 6) =>
     apiRequest<InflationInsight>(`/api/insights/inflation?months=${months}`, { token }),

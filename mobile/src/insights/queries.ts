@@ -8,6 +8,7 @@ export const insightKeys = {
   all: ['insights'] as const,
   spending: (period: Period) => [...insightKeys.all, 'spending', period] as const,
   savings: (period: Period) => [...insightKeys.all, 'savings', period] as const,
+  savingsDetails: (period: Period) => [...insightKeys.all, 'savings-details', period] as const,
   bestDay: (period: Period) => [...insightKeys.all, 'best-day', period] as const,
   inflation: () => [...insightKeys.all, 'inflation'] as const,
   summary: () => [...insightKeys.all, 'summary'] as const,
@@ -23,6 +24,14 @@ export function useSpending(period: Period) {
 export function useSavings(period: Period) {
   const token = useToken();
   return useQuery({ queryKey: insightKeys.savings(period), queryFn: () => insightsApi.savings(token, period) });
+}
+
+export function useSavingsDetails(period: Period) {
+  const token = useToken();
+  return useQuery({
+    queryKey: insightKeys.savingsDetails(period),
+    queryFn: () => insightsApi.savingsDetails(token, period),
+  });
 }
 
 export function useBestDay(period: Period) {

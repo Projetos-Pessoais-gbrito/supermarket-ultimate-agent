@@ -70,6 +70,12 @@ class InsightController {
         return savings.savings(userId(jwt), currentMonth(), months);
     }
 
+    @GetMapping("/savings/details")
+    SavingsDetails savingsDetails(@AuthenticationPrincipal Jwt jwt,
+                                  @RequestParam(defaultValue = "3") @Min(InsightWindow.ALL) @Max(120) int months) {
+        return savings.details(userId(jwt), currentMonth(), months);
+    }
+
     @GetMapping("/best-day")
     BestDayInsight bestDay(@AuthenticationPrincipal Jwt jwt,
                            @RequestParam(defaultValue = "365") @Min(30) @Max(3650) int days) {
