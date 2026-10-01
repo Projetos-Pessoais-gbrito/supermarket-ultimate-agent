@@ -1,6 +1,7 @@
 import { Link } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, Text } from 'react-native';
 
 import { ApiError } from '../api/client';
 import { errorMessage } from '../api/messages';
@@ -13,6 +14,9 @@ type Mode = 'login' | 'register';
 
 export function AuthForm({ mode }: { mode: Mode }) {
   const styles = useStyles();
+  // Apps are edge-to-edge, so Android no longer resizes the window for the keyboard:
+  // pad on every platform, measured from below the header
+  const headerHeight = useHeaderHeight();
   const { signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -37,7 +41,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>{mode === 'login' ? 'Que bom ver você de novo' : 'Crie sua conta'}</Text>
         <Text style={styles.subtitle}>
