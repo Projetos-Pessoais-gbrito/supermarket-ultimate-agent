@@ -145,7 +145,7 @@ public class SavingsInsightService {
                                 rs.getLong("receipt_id"),
                                 rs.getTimestamp("issued_at").toInstant(),
                                 rs.getString("store_name"),
-                                rs.getBigDecimal("quantity").stripTrailingZeros(),
+                                rs.getBigDecimal("quantity"),
                                 rs.getString("unit"),
                                 rs.getBigDecimal("unit_price"),
                                 cents(rs.getBigDecimal("extra")),
