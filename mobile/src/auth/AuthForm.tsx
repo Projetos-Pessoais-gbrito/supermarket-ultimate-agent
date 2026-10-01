@@ -39,7 +39,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>{mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'}</Text>
+        <Text style={styles.title}>{mode === 'login' ? 'Que bom ver você de novo' : 'Crie sua conta'}</Text>
         <Text style={styles.subtitle}>
           Escaneie suas notas fiscais e descubra onde e quando comprar mais barato.
         </Text>

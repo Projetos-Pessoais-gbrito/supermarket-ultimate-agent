@@ -158,7 +158,7 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
   if (!latest || latest.changePercent === null) {
     // Keep the card visible so people learn the feature exists and what it needs
     return (
-      <Card title="Sua inflação" subtitle="Comparado ao mês anterior">
+      <Card title="Sua inflação" subtitle="Mesmos produtos, comparados ao mês anterior">
         <Text style={styles.muted}>
           Compre os mesmos produtos em meses seguidos para ver sua inflação: comparamos o preço de cada
           produto com o do mês anterior.
@@ -171,7 +171,7 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
   const increases = inflation.changes.filter(product => product.changePercent > 0).slice(0, 3);
 
   return (
-    <Card title="Sua inflação" subtitle={`${formatMonthLong(latest.month)}, comparado ao mês anterior`}>
+    <Card title="Sua inflação" subtitle={`${formatMonthLong(latest.month)}: mesmos produtos, comparados ao mês anterior`}>
       <Text style={styles.tileValue}>
         {direction} {formatPercent(change)} {change > 0 ? 'mais caro' : change < 0 ? 'mais barato' : 'sem variação'}
       </Text>
@@ -249,7 +249,7 @@ function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
   return (
     <View style={[styles.card, styles.tile]}>
       <Text style={styles.cardLabel}>Melhor época</Text>
-      <Text style={styles.tileValue}>{bestDay ? (best ? best.label : 'Em breve') : '…'}</Text>
+      <Text style={styles.tileValue}>{bestDay ? (best ? best.label : 'Ainda sem dados') : '…'}</Text>
       <Text style={styles.muted}>
         {best
           ? best.percentVsAverage < 0
@@ -284,7 +284,7 @@ function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Pe
               Melhor preço {formatCurrency(product.bestUnitPrice)} no {product.bestStoreName}
             </Text>
           </View>
-          <Text style={styles.overpaidValue}>+{formatCurrency(product.extraPaid)}  ›</Text>
+          <Text style={styles.overpaidValue}>{formatCurrency(product.extraPaid)} a mais  ›</Text>
         </Pressable>
       ))}
     </Card>

@@ -19,6 +19,7 @@ import {
 import {
   alertHeadline,
   formatListQuantity,
+  formatUsualQuantity,
   suggestionBestPrice,
   suggestionRhythm,
 } from '../../../shopping/text';
@@ -200,7 +201,7 @@ function Suggestions({
                 <Text style={styles.meta}>{suggestionRhythm(suggestion)}</Text>
                 <Text style={styles.meta}>
                   Último preço: {formatCurrency(suggestion.lastPrice)} · costuma levar{' '}
-                  {formatListQuantity(suggestion.usualQuantity)}
+                  {formatUsualQuantity(suggestion.usualQuantity)} por vez
                 </Text>
                 {best && <Text style={styles.highlight}>{best}</Text>}
               </View>

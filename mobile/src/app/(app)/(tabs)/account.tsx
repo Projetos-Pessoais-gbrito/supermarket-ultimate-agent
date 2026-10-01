@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 
 import { accountApi, authApi } from '../../../api/endpoints';
-import { API_BASE_URL } from '../../../config';
 import { errorMessage } from '../../../api/messages';
 import { shareExport } from '../../../account/exportFile';
 import { useAppLock } from '../../../auth/AppLock';
@@ -36,9 +35,6 @@ export default function AccountScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>Conectado como</Text>
         <Text style={styles.email}>{me.data?.email ?? '…'}</Text>
-        <Text style={styles.server} selectable>
-          Servidor: {API_BASE_URL}
-        </Text>
         <Button title="Sair" variant="secondary" onPress={() => void signOut()} />
       </View>
 
@@ -136,7 +132,7 @@ function BiometricSetting() {
           <Text style={styles.text}>
             {available === false
               ? 'Cadastre uma digital (ou rosto) nas configurações do celular para usar.'
-              : 'Pede sua digital ao abrir o app e ao voltar depois de 1 minuto.'}
+              : 'Pede sua digital ao abrir o app e quando você volta depois de mais de 1 minuto fora.'}
           </Text>
         </View>
         <Switch
@@ -163,7 +159,6 @@ const useStyles = makeStyles(colors => ({
   dangerCard: { borderWidth: 1, borderColor: colors.dangerBackground },
   label: { fontSize: 14, color: colors.textMuted },
   email: { fontSize: 18, fontWeight: '600', color: colors.text },
-  server: { fontSize: 12, color: colors.textMuted },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   actions: { gap: spacing.sm },
