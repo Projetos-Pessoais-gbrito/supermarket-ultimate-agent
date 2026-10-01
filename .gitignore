@@ -24,3 +24,6 @@ dist/
 web-build/
 *.tsbuildinfo
 npm-debug.log*
+
+# Database backups (personal data)
+*.dump
