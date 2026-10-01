@@ -18,10 +18,13 @@ export function purchasePaid(purchase: SavingsPurchase): string {
   return `Você pagou ${formatCurrency(purchase.unitPrice)}${perUnit}${quantity}`;
 }
 
-/** "Menor preço até 2 meses antes ou depois: R$ 25,90 no Assaí em 01/08/2026" */
-export function purchaseReference(purchase: SavingsPurchase, windowDays: number): string {
+/**
+ * The cheaper purchase it is compared with: "Em 01/08/2026, no Assaí, você pagou só R$ 25,90".
+ * The time window is explained once at the top of the screen, not on every row.
+ */
+export function purchaseReference(purchase: SavingsPurchase): string {
   return (
-    `Menor preço até ${formatWindow(windowDays)} antes ou depois: ` +
-    `${formatCurrency(purchase.bestUnitPrice)} no ${purchase.bestStoreName} em ${formatDate(purchase.bestIssuedAt)}`
+    `Em ${formatDate(purchase.bestIssuedAt)}, no ${purchase.bestStoreName}, ` +
+    `você pagou só ${formatCurrency(purchase.bestUnitPrice)}`
   );
 }

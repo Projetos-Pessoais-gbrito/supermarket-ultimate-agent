@@ -41,7 +41,7 @@ export default function SavingsScreen() {
               {formatWindow(data.comparisonWindowDays)}, as diferenças de preço aparecem aqui.
             </Text>
           }
-          renderItem={({ item }) => <ProductCard product={item} windowDays={data.comparisonWindowDays} />}
+          renderItem={({ item }) => <ProductCard product={item} />}
         />
       )}
     </View>
@@ -91,7 +91,7 @@ function Step({ number, text }: { number: number; text: string }) {
   );
 }
 
-function ProductCard({ product, windowDays }: { product: ProductDetails; windowDays: number }) {
+function ProductCard({ product }: { product: ProductDetails }) {
   const styles = useStyles();
   const router = useRouter();
   return (
@@ -105,13 +105,13 @@ function ProductCard({ product, windowDays }: { product: ProductDetails; windowD
         <Text style={styles.extra}>+{formatCurrency(product.extraPaid)}</Text>
       </Pressable>
       {product.purchases.map((purchase, index) => (
-        <PurchaseRow key={`${purchase.receiptId}-${index}`} purchase={purchase} windowDays={windowDays} />
+        <PurchaseRow key={`${purchase.receiptId}-${index}`} purchase={purchase} />
       ))}
     </View>
   );
 }
 
-function PurchaseRow({ purchase, windowDays }: { purchase: SavingsPurchase; windowDays: number }) {
+function PurchaseRow({ purchase }: { purchase: SavingsPurchase }) {
   const styles = useStyles();
   return (
     <View style={styles.purchase}>
@@ -120,7 +120,7 @@ function PurchaseRow({ purchase, windowDays }: { purchase: SavingsPurchase; wind
           {formatDate(purchase.issuedAt)} · {purchase.storeName}
         </Text>
         <Text style={styles.muted}>{purchasePaid(purchase)}</Text>
-        <Text style={styles.muted}>{purchaseReference(purchase, windowDays)}</Text>
+        <Text style={styles.muted}>{purchaseReference(purchase)}</Text>
       </View>
       <Text style={styles.purchaseExtra}>+{formatCurrency(purchase.extraPaid)}</Text>
     </View>

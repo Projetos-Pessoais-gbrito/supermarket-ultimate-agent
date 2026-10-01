@@ -46,8 +46,6 @@ describe('purchasePaid', () => {
 
 describe('purchaseReference', () => {
   it('says which cheaper purchase it is compared with', () => {
-    expect(purchaseReference(purchase(), 60)).toBe(
-      'Menor preço até 2 meses antes ou depois: R$ 25,90 no Assaí em 01/08/2026',
-    );
+    expect(purchaseReference(purchase())).toBe('Em 01/08/2026, no Assaí, você pagou só R$ 25,90');
   });
 });
