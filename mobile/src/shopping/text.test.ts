@@ -3,6 +3,7 @@ import {
   alertHeadline,
   formatDaysAgo,
   formatListQuantity,
+  formatUsualQuantity,
   sortListItems,
   suggestionBestPrice,
   suggestionRhythm,
@@ -62,10 +63,17 @@ describe('suggestion texts', () => {
 
 describe('alertHeadline', () => {
   it('describes deals and rises against the usual price', () => {
-    expect(alertHeadline(alert)).toBe('15,0% mais barato que o normal (R$ 5,00)');
+    expect(alertHeadline(alert)).toBe('15,0% mais barato que o normal (você costuma pagar R$ 5,00)');
     expect(alertHeadline({ ...alert, type: 'RISE', changePercent: 20.5 })).toBe(
-      '20,5% mais caro que o normal (R$ 5,00)',
+      '20,5% mais caro que o normal (você costuma pagar R$ 5,00)',
     );
+  });
+});
+
+describe('formatUsualQuantity', () => {
+  it('formats whole and fractional quantities without a multiplication sign', () => {
+    expect(formatUsualQuantity(2)).toBe('2');
+    expect(formatUsualQuantity(1.5)).toBe('1,5');
   });
 });
 

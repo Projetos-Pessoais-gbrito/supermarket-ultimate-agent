@@ -23,10 +23,15 @@ export function suggestionBestPrice(suggestion: ShoppingSuggestion): string | nu
   return `Mais barato: ${formatCurrency(suggestion.bestRecentPrice)} em ${suggestion.bestRecentStore}`;
 }
 
-/** "12,3% mais barato que o normal (R$ 5,00)" */
+/** "12,3% mais barato que o normal (você costuma pagar R$ 5,00)" */
 export function alertHeadline(alert: PriceAlert): string {
   const direction = alert.type === 'DEAL' ? 'mais barato' : 'mais caro';
-  return `${formatPercent(alert.changePercent)} ${direction} que o normal (${formatCurrency(alert.usualPrice)})`;
+  return `${formatPercent(alert.changePercent)} ${direction} que o normal (você costuma pagar ${formatCurrency(alert.usualPrice)})`;
+}
+
+/** 2 → "2", 1.5 → "1,5" (how much is usually bought at a time) */
+export function formatUsualQuantity(quantity: number): string {
+  return String(quantity).replace('.', ',');
 }
 
 /** 2 → "2×", 1.5 → "1,5×"; empty when no quantity was given. */
