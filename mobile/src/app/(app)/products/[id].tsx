@@ -3,7 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 
 import { errorMessage } from '../../../api/messages';
 import type { PricePoint } from '../../../api/types';
-import { formatCurrency, formatDate, formatPercent } from '../../../format';
+import { formatCurrency, formatDate, formatPercent, formatQuantity, formatUnitPrice, isSoldByMeasure } from '../../../format';
 import { priceStats } from '../../../insights/priceStats';
 import { usePriceHistory } from '../../../insights/queries';
 import { ColumnChart } from '../../../ui/charts';
@@ -17,6 +17,9 @@ export default function ProductPriceHistoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data, error, isPending } = usePriceHistory(Number(id));
   const stats = data ? priceStats(data.prices) : null;
+  // Items sold by weight are compared per kilo; what was paid depends on how much was bought
+  const unit = stats?.last.unit ?? 'UN';
+  const byMeasure = isSoldByMeasure(unit);
 
   return (
     <View style={styles.container}>
@@ -37,23 +40,35 @@ export default function ProductPriceHistoryScreen() {
           </View>
 
           <View style={styles.tiles}>
-            <Tile label="Último preço" value={formatCurrency(stats.last.unitPrice)} note={where(stats.last)} />
-            <Tile label="Melhor preço" value={formatCurrency(stats.lowest.unitPrice)} note={where(stats.lowest)} />
+            <Tile
+              label="Última compra"
+              value={formatCurrency(paid(stats.last))}
+              note={byMeasure ? `${amount(stats.last)}
+${where(stats.last)}` : where(stats.last)}
+            />
+            <Tile
+              label={byMeasure ? `Melhor preço por ${unit.toLowerCase()}` : 'Melhor preço'}
+              value={formatUnitPrice(stats.lowest.unitPrice, unit)}
+              note={where(stats.lowest)}
+            />
           </View>
           <View style={styles.card}>
             <Text style={styles.muted}>
-              Média {formatCurrency(stats.average)} · maior {formatCurrency(stats.highest.unitPrice)}
+              Média {formatUnitPrice(stats.average, unit)} · maior {formatUnitPrice(stats.highest.unitPrice, unit)}
             </Text>
             {stats.lastAboveLowestPercent > 0 && (
               <Text style={styles.text}>
-                Na última compra você pagou {formatPercent(stats.lastAboveLowestPercent)} acima do seu melhor preço.
+                Na última compra você pagou {formatPercent(stats.lastAboveLowestPercent)} acima do seu melhor preço
+                {byMeasure ? ` por ${unit.toLowerCase()}` : ''}.
               </Text>
             )}
           </View>
 
           {data.prices.length > 1 && (
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Preço por compra</Text>
+              <Text style={styles.cardTitle}>
+                {byMeasure ? `Preço por ${unit.toLowerCase()} em cada compra` : 'Preço por compra'}
+              </Text>
               <ColumnChart
                 data={data.prices.map((point, index) => ({
                   key: String(index),
@@ -62,7 +77,7 @@ export default function ProductPriceHistoryScreen() {
                   value: point.unitPrice,
                 }))}
                 highlightKey={String(data.prices.length - 1)}
-                formatValue={formatCurrency}
+                formatValue={value => formatUnitPrice(value, unit)}
               />
             </View>
           )}
@@ -74,8 +89,9 @@ export default function ProductPriceHistoryScreen() {
                 <View style={styles.rowMain}>
                   <Text style={styles.text}>{point.storeName}</Text>
                   <Text style={styles.muted}>{formatDate(point.issuedAt)}</Text>
+                  {isSoldByMeasure(point.unit) && <Text style={styles.muted}>{amount(point)}</Text>}
                 </View>
-                <Text style={styles.value}>{formatCurrency(point.unitPrice)}</Text>
+                <Text style={styles.value}>{formatCurrency(paid(point))}</Text>
               </View>
             ))}
           </View>
@@ -83,6 +99,17 @@ export default function ProductPriceHistoryScreen() {
       )}
     </View>
   );
+}
+
+/** What was paid on that line; older servers only sent the unit price. */
+function paid(point: PricePoint): number {
+  return point.totalPrice ?? point.unitPrice;
+}
+
+/** "0,148 kg · R$ 21,90/kg" */
+function amount(point: PricePoint): string {
+  const perUnit = formatUnitPrice(point.unitPrice, point.unit);
+  return point.quantity === undefined ? perUnit : `${formatQuantity(point.quantity, point.unit)} · ${perUnit}`;
 }
 
 function where(point: PricePoint): string {
