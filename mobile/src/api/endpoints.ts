@@ -1,6 +1,6 @@
 import { apiRequest, apiRequestWithStatus, IMPORT_TIMEOUT_MS } from './client';
 import type {
-  BestDayInsight,
+  BestTimeInsight,
   BudgetCategoryOption,
   BudgetSettings,
   BudgetStatus,
@@ -100,7 +100,8 @@ export const insightsApi = {
     apiRequest<SavingsInsight>(`/api/insights/savings?months=${months}`, { token }),
   savingsDetails: (token: string, months = 3) =>
     apiRequest<SavingsDetails>(`/api/insights/savings/details?months=${months}`, { token }),
-  bestDay: (token: string, days = 365) => apiRequest<BestDayInsight>(`/api/insights/best-day?days=${days}`, { token }),
+  bestTime: (token: string, days = 365) =>
+    apiRequest<BestTimeInsight>(`/api/insights/best-time?days=${days}`, { token }),
   inflation: (token: string, months = 6) =>
     apiRequest<InflationInsight>(`/api/insights/inflation?months=${months}`, { token }),
   summary: (token: string) => apiRequest<InsightSummary>('/api/insights/summary', { token }),
