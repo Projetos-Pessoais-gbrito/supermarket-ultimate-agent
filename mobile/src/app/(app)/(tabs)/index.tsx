@@ -224,16 +224,22 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (period:
 
 function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined; period: Period }) {
   const styles = useStyles();
+  const router = useRouter();
   return (
-    <View style={[styles.card, styles.tile]}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/savings', params: { months: String(period) } })}
+      accessibilityRole="button"
+      accessibilityHint="Explica o cálculo e mostra as compras"
+      style={({ pressed }) => [styles.card, styles.tile, pressed && styles.pressed]}>
       <Text style={styles.cardLabel}>Economia possível</Text>
       <Text style={styles.tileValue}>{savings ? formatCurrency(savings.potentialSavings) : '…'}</Text>
       <Text style={styles.muted}>
         {savings && savings.potentialSavings > 0
-          ? `${periodDescription(period).toLowerCase()}, pagando o menor preço visto até 2 meses antes ou depois`
+          ? 'se pagasse sempre o menor preço que você já pagou por cada produto'
           : 'Compre os mesmos produtos mais vezes para comparar preços'}
       </Text>
-    </View>
+      <Text style={styles.tileLink}>Entenda o cálculo ›</Text>
+    </Pressable>
   );
 }
 
@@ -339,6 +345,7 @@ const useStyles = makeStyles(colors => ({
   periodTextSelected: { color: colors.text, fontWeight: '600' },
   tile: { flex: 1, gap: spacing.xs },
   tileValue: { fontSize: 22, fontWeight: '700', color: colors.text },
+  tileLink: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 'auto' },
   overpaidRow: {
     flexDirection: 'row',
     alignItems: 'center',
