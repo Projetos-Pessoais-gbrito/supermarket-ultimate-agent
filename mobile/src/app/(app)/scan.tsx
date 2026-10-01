@@ -1,8 +1,9 @@
 import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage, KEY_ONLY_LINK_MESSAGE } from '../../api/messages';
 import { photoImportSummary, pickReceiptQrCode, type PhotoOutcome } from '../../receipts/photoImport';
@@ -23,6 +24,8 @@ export default function ScanScreen() {
   const colors = useColors();
   const styles = useStyles();
   const router = useRouter();
+  // Edge-to-edge: Android does not resize for the keyboard, so pad below the header (see AuthForm)
+  const headerHeight = useHeaderHeight();
   const [permission, requestPermission] = useCameraPermissions();
   const importReceipt = useImportReceipt();
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +146,7 @@ export default function ScanScreen() {
   const waitingForRetry = scanPaused && !busy && error !== null;
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.container} behavior="padding" keyboardVerticalOffset={headerHeight}>
       <Stack.Screen options={{ title: 'Escanear nota' }} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.cameraBox}>

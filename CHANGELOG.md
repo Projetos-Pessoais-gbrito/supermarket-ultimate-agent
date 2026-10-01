@@ -3,6 +3,33 @@
 All notable changes to this project. Versions follow [SemVer](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.2.0] - 2026-10-01
+
+Understand the numbers, update with one tap, and run everything on free plans.
+
+### Added
+
+- **Economia possível explained**: tap the tile for how it is calculated and, product by
+  product, every purchase that cost more with the cheaper one it is compared to.
+- **Melhor época per store**: each store's best part of the month and weekday, shown only when
+  the difference is at least 3%, has enough purchases and is unlikely to be chance (Welch's
+  t-test); otherwise "Sem padrão" or "Ainda sem dados". AI tips use only these patterns.
+- **One-tap updates**: EAS Update downloads new versions in the background and the app offers
+  "Nova versão do app pronta · Atualizar". From this APK on, most changes need no new install.
+
+### Changed
+
+- Free hosting: the database moved to Neon; Render runs only the API (docs/DEPLOY.md).
+- Clearer texts across the app: the savings and inflation cards, price alerts, list
+  suggestions, the lock screen, the login greeting and the timeout message.
+- The account screen no longer shows the server address.
+
+### Fixed
+
+- Android: the camera permission was removed by the photo picker's settings, so the QR scanner
+  could not use the camera.
+- Android: the keyboard covered the login and scan fields (edge-to-edge since SDK 54).
+
 ## [1.1.0] - 2026-10-01
 
 Plan your shopping, import receipts more ways, and install the app outside Expo Go.
