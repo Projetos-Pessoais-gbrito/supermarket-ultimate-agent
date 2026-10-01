@@ -1,24 +1,30 @@
 import { MutationCache, QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState, type ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, useColorScheme, View } from 'react-native';
 
 import { ApiError } from '../api/client';
 import { AppLock } from '../auth/AppLock';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
-import { colors } from '../ui/theme';
+import { navigationTheme } from '../ui/navigationTheme';
+import { makeStyles, useColors } from '../ui/theme';
 
 export default function RootLayout() {
+  const colors = useColors();
+  const dark = useColorScheme() === 'dark';
   return (
-    <AuthProvider>
-      <QueryProvider>
-        <AppLock>
-          <RootNavigator />
-        </AppLock>
-        <StatusBar style="auto" />
-      </QueryProvider>
-    </AuthProvider>
+    <ThemeProvider value={navigationTheme(colors, dark)}>
+      <AuthProvider>
+        <QueryProvider>
+          <AppLock>
+            <RootNavigator />
+          </AppLock>
+          {/* auto = light icons on dark screens and vice versa */}
+          <StatusBar style="auto" />
+        </QueryProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
@@ -59,6 +65,8 @@ function QueryProvider({ children }: { children: ReactNode }) {
 
 function RootNavigator() {
   const { status } = useAuth();
+  const colors = useColors();
+  const styles = useStyles();
 
   if (status === 'loading') {
     return (
@@ -82,6 +90,6 @@ function RootNavigator() {
   );
 }
 
-const styles = StyleSheet.create({
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
-});
+const useStyles = makeStyles(colors => ({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+}));

@@ -21,8 +21,15 @@ public record ReceiptDetails(
     public record Store(long id, String cnpj, String name, String legalName, String address) {
     }
 
+    /**
+     * @param description   as printed on the receipt
+     * @param productId     canonical product; null until matched
+     * @param productName   friendly name written by the AI; null until available
+     * @param categoryLabel pt-BR category; null until categorized
+     */
     public record Item(int lineNumber, String code, String description, BigDecimal quantity, String unit,
-                       BigDecimal unitPrice, BigDecimal totalPrice) {
+                       BigDecimal unitPrice, BigDecimal totalPrice, Long productId, String productName,
+                       String categoryLabel) {
     }
 
     public record Payment(String method, BigDecimal amount) {

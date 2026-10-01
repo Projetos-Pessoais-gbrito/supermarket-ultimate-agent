@@ -20,4 +20,27 @@ public interface NfceProvider {
      * @param qrCodeUrl the full URL from the QR code (the public page requires its hash)
      */
     FetchedReceipt fetch(AccessKey accessKey, String qrCodeUrl);
+
+    /**
+     * Rejects links this provider would never download (wrong host, scheme, port...), so malformed
+     * links fail the same way whether or not the receipt was imported before.
+     *
+     * @throws UntrustedReceiptUrlException when the link is not an official consultation page
+     */
+    default void validateQrCodeUrl(String qrCodeUrl) {
+    }
+
+    /**
+     * Reads a consultation page the user opened in the app after solving the SEFAZ captcha. The page
+     * cannot be re-checked with SEFAZ, so implementations must at least remove personal data and
+     * verify it shows {@code accessKey}.
+     */
+    default FetchedReceipt parseUserPage(AccessKey accessKey, String html) {
+        throw new UnsupportedStateException(stateCode());
+    }
+
+    /** Public "consulta por chave" page for the key (the one protected by a captcha). */
+    default String keyConsultationUrl(AccessKey accessKey) {
+        throw new UnsupportedStateException(stateCode());
+    }
 }

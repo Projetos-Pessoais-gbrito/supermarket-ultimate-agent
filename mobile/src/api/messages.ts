@@ -1,8 +1,8 @@
 import { ApiError } from './client';
 
 export const KEY_ONLY_LINK_MESSAGE =
-  'Esse link é da consulta por chave de acesso, que pede captcha na SEFAZ. Escaneie o QR code do cupom ' +
-  'ou cole o link que abre ao escanear (ele contém "qrcode?p=").';
+  'Esse link só tem a chave de acesso, e a SEFAZ pede um captcha para mostrar a nota. Toque em ' +
+  '"Abrir na SEFAZ" para resolver o captcha aqui no app, ou escaneie o QR code do cupom.';
 
 /** User-facing (pt-BR) message for a failed request. Screens can override specific statuses. */
 export function errorMessage(error: unknown): string {
@@ -12,9 +12,12 @@ export function errorMessage(error: unknown): string {
   if (error.code === 'KEY_ONLY_LINK') {
     return KEY_ONLY_LINK_MESSAGE;
   }
+  if (error.code === 'TIMEOUT') {
+    return 'A consulta demorou demais para responder. Verifique a conexão e tente novamente.';
+  }
   switch (error.status) {
     case 0:
-      return 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi do computador.';
+      return 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
     case 400:
       return 'Esse QR code não é de uma nota fiscal válida.';
     case 401:
@@ -25,6 +28,8 @@ export function errorMessage(error: unknown): string {
       return 'Nota fiscal não encontrada.';
     case 409:
       return 'Este e-mail já está cadastrado.';
+    case 429:
+      return 'Muitas tentativas. Tente de novo em alguns minutos.';
     case 422:
       return 'Não foi possível ler essa nota na SEFAZ. Por enquanto só notas de São Paulo são suportadas.';
     case 503:

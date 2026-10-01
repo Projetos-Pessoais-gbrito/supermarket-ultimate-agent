@@ -6,8 +6,10 @@ import com.supermarketagent.receipt.domain.InvalidAccessKeyException;
 import com.supermarketagent.receipt.domain.KeyOnlyLinkException;
 import com.supermarketagent.receipt.domain.QrCodeUrlParser;
 import com.supermarketagent.receipt.persistence.ReceiptRepository;
+import com.supermarketagent.receipt.persistence.ReceiptSource;
 import com.supermarketagent.receipt.privacy.PersonalDataSanitizer;
 import com.supermarketagent.receipt.provider.FetchedReceipt;
+import com.supermarketagent.receipt.provider.NfcePageParseException;
 import com.supermarketagent.receipt.provider.NfceProvider;
 import com.supermarketagent.receipt.provider.NfceProviderRegistry;
 import org.slf4j.Logger;
@@ -48,17 +50,50 @@ public class ReceiptImportService {
             throw new KeyOnlyLinkException();
         }
 
+        // Validate the link itself before the "already imported" shortcut, so a malformed link is
+        // always rejected instead of silently opening an existing receipt
+        NfceProvider provider = providers.providerFor(accessKey);
+        provider.validateQrCodeUrl(qrCodeUrl);
+
+        var existing = receipts.findIdByUserIdAndAccessKey(userId, accessKey.value());
+        if (existing.isPresent()) {
+            return new ReceiptImportResult(existing.get(), false);
+        }
+
+        FetchedReceipt fetched = provider.fetch(accessKey, qrCodeUrl);
+        String sourceUrl = PersonalDataSanitizer.sanitizeQrCodeUrl(qrCodeUrl.strip());
+        return save(userId, accessKey, fetched, provider, sourceUrl, ReceiptSource.QR_CODE);
+    }
+
+    /**
+     * Imports the consultation page the user opened in the app after solving the SEFAZ captcha.
+     * SEFAZ cannot be asked again, so the page must show the requested key and the store must be the
+     * issuer encoded in that key; it may add new stores/products but never rename shared ones.
+     */
+    public ReceiptImportResult importFromCaptchaPage(long userId, String accessKeyValue, String html) {
+        AccessKey accessKey = AccessKey.parse(accessKeyValue);
+        if (!accessKey.isNfce()) {
+            throw new InvalidAccessKeyException("Only NFC-e (consumer receipt, model 65) can be imported");
+        }
         var existing = receipts.findIdByUserIdAndAccessKey(userId, accessKey.value());
         if (existing.isPresent()) {
             return new ReceiptImportResult(existing.get(), false);
         }
 
         NfceProvider provider = providers.providerFor(accessKey);
-        FetchedReceipt fetched = provider.fetch(accessKey, qrCodeUrl);
-        String sourceUrl = PersonalDataSanitizer.sanitizeQrCodeUrl(qrCodeUrl.strip());
+        FetchedReceipt fetched = provider.parseUserPage(accessKey, html);
+        if (!fetched.receipt().store().cnpj().equals(accessKey.issuerCnpj())) {
+            throw new NfcePageParseException("The store on the page is not the issuer of this access key");
+        }
+        return save(userId, accessKey, fetched, provider, provider.keyConsultationUrl(accessKey),
+                ReceiptSource.CAPTCHA_PAGE);
+    }
+
+    private ReceiptImportResult save(long userId, AccessKey accessKey, FetchedReceipt fetched, NfceProvider provider,
+                                     String sourceUrl, ReceiptSource source) {
         long receiptId;
         try {
-            receiptId = writer.save(userId, fetched, provider.timeZone(), sourceUrl);
+            receiptId = writer.save(userId, fetched, provider.timeZone(), sourceUrl, source);
         } catch (DataIntegrityViolationException e) {
             // The same user imported this receipt concurrently; the other request won
             return receipts.findIdByUserIdAndAccessKey(userId, accessKey.value())

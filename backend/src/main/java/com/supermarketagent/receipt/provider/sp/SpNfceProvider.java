@@ -12,6 +12,7 @@ import com.supermarketagent.receipt.provider.UntrustedReceiptUrlException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Set;
@@ -65,6 +66,27 @@ public class SpNfceProvider implements NfceProvider {
         return new FetchedReceipt(receipt, html);
     }
 
+    @Override
+    public void validateQrCodeUrl(String qrCodeUrl) {
+        trustedUri(qrCodeUrl);
+    }
+
+    @Override
+    public FetchedReceipt parseUserPage(AccessKey accessKey, String html) {
+        String sanitized = PersonalDataSanitizer.sanitizeHtml(html);
+        ParsedReceipt receipt = parser.parse(sanitized);
+        if (!receipt.accessKey().equals(accessKey)) {
+            throw new NfcePageParseException("The page shows a different receipt than the one requested");
+        }
+        return new FetchedReceipt(receipt, sanitized);
+    }
+
+    @Override
+    public String keyConsultationUrl(AccessKey accessKey) {
+        return "https://www.nfce.fazenda.sp.gov.br/NFCeConsultaPublica/Paginas/ConsultaPublica.aspx?chNFe="
+                + accessKey.value();
+    }
+
     /** Accepts only SEFAZ-SP hosts and always uses HTTPS, whatever scheme the QR code printed. */
     static URI trustedUri(String qrCodeUrl) {
         URI parsed;
@@ -89,9 +111,10 @@ public class SpNfceProvider implements NfceProvider {
      * pass the same host allow-list, so a redirect can never lead outside SEFAZ-SP.
      */
     private String download(URI uri) {
+        Instant deadline = Instant.now().plus(properties.maxTotalTime());
         URI current = uri;
         for (int redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
-            Response response = requestWithRetry(current);
+            Response response = requestWithRetry(current, deadline);
             if (response.redirectTo() == null) {
                 return response.body();
             }
@@ -100,9 +123,13 @@ public class SpNfceProvider implements NfceProvider {
         throw new NfcePageParseException("SEFAZ-SP redirected too many times");
     }
 
-    private Response requestWithRetry(URI uri) {
+    private Response requestWithRetry(URI uri, Instant deadline) {
         RuntimeException lastFailure = null;
         for (int attempt = 1; attempt <= properties.maxAttempts(); attempt++) {
+            if (Instant.now().isAfter(deadline)) {
+                throw new SefazUnavailableException("SEFAZ-SP took longer than " + properties.maxTotalTime(),
+                        lastFailure);
+            }
             try {
                 throttle.acquire();
                 return client.get().uri(uri).exchange((request, response) -> {

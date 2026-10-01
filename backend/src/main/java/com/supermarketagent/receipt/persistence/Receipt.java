@@ -4,6 +4,8 @@ import com.supermarketagent.catalog.Store;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -64,6 +66,10 @@ public class Receipt {
     @Column(name = "raw_html", nullable = false, columnDefinition = "text")
     private String rawHtml;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReceiptSource source;
+
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineNumber")
     private List<ReceiptItem> items = new ArrayList<>();
@@ -77,7 +83,7 @@ public class Receipt {
 
     public Receipt(Long userId, Store store, String accessKey, long number, int series, Instant issuedAt,
                    BigDecimal totalAmount, BigDecimal discountAmount, BigDecimal approximateTaxes,
-                   String sourceUrl, String rawHtml) {
+                   String sourceUrl, String rawHtml, ReceiptSource source) {
         this.userId = userId;
         this.store = store;
         this.accessKey = accessKey;
@@ -89,6 +95,7 @@ public class Receipt {
         this.approximateTaxes = approximateTaxes;
         this.sourceUrl = sourceUrl;
         this.rawHtml = rawHtml;
+        this.source = source;
     }
 
     public void addItem(ReceiptItem item) {
@@ -147,6 +154,10 @@ public class Receipt {
 
     public String getRawHtml() {
         return rawHtml;
+    }
+
+    public ReceiptSource getSource() {
+        return source;
     }
 
     public List<ReceiptItem> getItems() {

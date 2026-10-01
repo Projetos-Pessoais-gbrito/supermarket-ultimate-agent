@@ -1,38 +1,56 @@
-import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import { CameraView, scanFromURLAsync, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { errorMessage, KEY_ONLY_LINK_MESSAGE } from '../../api/messages';
-import { isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
+import { photoImportSummary, pickReceiptQrCode, type PhotoOutcome } from '../../receipts/photoImport';
+import { accessKeyFromLink, isKeyOnlyLink, isReceiptQrCode } from '../../receipts/qrCode';
 import { useImportReceipt } from '../../receipts/queries';
 import { Button, ErrorBanner, TextField } from '../../ui/components';
-import { colors, spacing } from '../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../ui/theme';
+
+// The loading layer sits on the camera image, always dark, in light and dark mode alike
+const CAMERA_OVERLAY_TEXT = '#FFFFFF';
 
 const NOT_A_RECEIPT = 'Esse QR code não é de uma nota fiscal (NFC-e). Procure o QR code no fim do cupom.';
+const NO_QR_CODE =
+  'Não encontramos um QR code nessa foto. Use uma foto nítida, com o QR code inteiro e sem reflexo.';
+const MAX_PHOTOS = 20;
 
 export default function ScanScreen() {
+  const colors = useColors();
+  const styles = useStyles();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const importReceipt = useImportReceipt();
   const [error, setError] = useState<string | null>(null);
   const [pastedUrl, setPastedUrl] = useState('');
   const [scanPaused, setScanPaused] = useState(false);
+  // Key of a key-only link: offers opening the SEFAZ page to solve the captcha
+  const [captchaKey, setCaptchaKey] = useState<string | null>(null);
   // Camera callbacks fire many times per second, before state updates land; only the first read counts
   const handled = useRef(false);
+  // Gallery import: photos read so far, and the summary once the batch is done
+  const [photoProgress, setPhotoProgress] = useState<{ outcomes: PhotoOutcome[]; total: number } | null>(null);
+  const [photoSummary, setPhotoSummary] = useState<string | null>(null);
 
   function submit(qrCodeUrl: string) {
+    setCaptchaKey(null);
+    setPhotoSummary(null);
     if (!isReceiptQrCode(qrCodeUrl)) {
       setError(NOT_A_RECEIPT);
       return;
     }
     if (isKeyOnlyLink(qrCodeUrl)) {
       setError(KEY_ONLY_LINK_MESSAGE);
+      setCaptchaKey(accessKeyFromLink(qrCodeUrl));
       return;
     }
     setError(null);
     importReceipt.mutate(qrCodeUrl, {
-      onSuccess: receipt => router.replace(`/receipts/${receipt.id}`),
+      onSuccess: ({ receipt, alreadyImported }) => openReceipt(receipt.id, alreadyImported),
       onError: e => setError(errorMessage(e)),
     });
   }
@@ -46,6 +64,74 @@ export default function ScanScreen() {
     submit(data);
   }
 
+  /** Reads the QR code of each picked photo and imports them one by one through the same flow. */
+  async function importPhotos() {
+    const picked = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_PHOTOS,
+      quality: 1,
+    });
+    if (picked.canceled || !picked.assets?.length) {
+      return;
+    }
+    const photos = picked.assets.slice(0, MAX_PHOTOS);
+    handled.current = true;
+    setScanPaused(true);
+    setError(null);
+    setCaptchaKey(null);
+    setPhotoSummary(null);
+
+    const outcomes: PhotoOutcome[] = [];
+    let lastError: string | null = null;
+    let keyOnlyKey: string | null = null;
+    let lastResult: Awaited<ReturnType<typeof importReceipt.mutateAsync>> | null = null;
+    for (const photo of photos) {
+      setPhotoProgress({ outcomes: [...outcomes], total: photos.length });
+      const qrCodeUrl = await readReceiptQrCode(photo.uri);
+      if (qrCodeUrl === null) {
+        outcomes.push('noQrCode');
+        lastError = NO_QR_CODE;
+      } else if (!isReceiptQrCode(qrCodeUrl)) {
+        outcomes.push('notReceipt');
+        lastError = NOT_A_RECEIPT;
+      } else if (isKeyOnlyLink(qrCodeUrl)) {
+        outcomes.push('keyOnly');
+        lastError = KEY_ONLY_LINK_MESSAGE;
+        keyOnlyKey = accessKeyFromLink(qrCodeUrl);
+      } else {
+        try {
+          lastResult = await importReceipt.mutateAsync(qrCodeUrl);
+          outcomes.push(lastResult.alreadyImported ? 'alreadyImported' : 'imported');
+        } catch (e) {
+          outcomes.push('failed');
+          lastError = errorMessage(e);
+        }
+      }
+    }
+    setPhotoProgress(null);
+    handled.current = false;
+    setScanPaused(false);
+
+    // A single photo behaves like a scan: open the receipt, or explain what went wrong
+    if (photos.length === 1 && lastResult) {
+      openReceipt(lastResult.receipt.id, lastResult.alreadyImported);
+      return;
+    }
+    if (photos.length > 1) {
+      setPhotoSummary(photoImportSummary(outcomes));
+    }
+    setError(lastError);
+    setCaptchaKey(keyOnlyKey);
+  }
+
+  function openReceipt(id: number, alreadyImported: boolean) {
+    router.replace({
+      pathname: '/receipts/[id]',
+      params: { id: String(id), ...(alreadyImported ? { alreadyImported: '1' } : {}) },
+    });
+  }
+
   function scanAgain() {
     handled.current = false;
     setScanPaused(false);
@@ -53,7 +139,7 @@ export default function ScanScreen() {
     setError(null);
   }
 
-  const busy = importReceipt.isPending;
+  const busy = importReceipt.isPending || photoProgress !== null;
   const waitingForRetry = scanPaused && !busy && error !== null;
 
   return (
@@ -75,15 +161,42 @@ export default function ScanScreen() {
           )}
           {busy && (
             <View style={styles.overlay}>
-              <ActivityIndicator size="large" color={colors.background} />
-              <Text style={styles.overlayText}>Buscando a nota na SEFAZ…</Text>
+              <ActivityIndicator size="large" color={CAMERA_OVERLAY_TEXT} />
+              <Text style={styles.overlayText}>
+                {photoProgress
+                  ? `Foto ${photoProgress.outcomes.length + 1} de ${photoProgress.total}…`
+                  : 'Buscando a nota na SEFAZ…'}
+              </Text>
+              {photoProgress && photoProgress.outcomes.length > 0 && (
+                <Text style={styles.overlayDetail}>
+                  {photoImportSummary(photoProgress.outcomes, photoProgress.total)}
+                </Text>
+              )}
             </View>
           )}
         </View>
 
         <Text style={styles.hint}>Aponte a câmera para o QR code impresso no fim do cupom fiscal.</Text>
 
+        <Button
+          title="Escolher foto da galeria"
+          variant="secondary"
+          onPress={() => void importPhotos()}
+          disabled={busy}
+        />
+
+        {photoSummary && (
+          <View accessibilityRole="summary" style={styles.summary}>
+            <Text style={styles.summaryText}>{photoSummary}</Text>
+          </View>
+        )}
         <ErrorBanner message={error} />
+        {captchaKey && (
+          <Button
+            title="Abrir na SEFAZ e resolver o captcha"
+            onPress={() => router.push({ pathname: '/sefaz', params: { key: captchaKey } })}
+          />
+        )}
         {waitingForRetry && <Button title="Escanear novamente" variant="secondary" onPress={scanAgain} />}
 
         <View style={styles.manual}>
@@ -108,7 +221,18 @@ export default function ScanScreen() {
   );
 }
 
+/** The receipt link in a picked photo, or null when no QR code could be read from it. */
+async function readReceiptQrCode(uri: string): Promise<string | null> {
+  try {
+    const codes = await scanFromURLAsync(uri, ['qr']);
+    return pickReceiptQrCode(codes.map(code => code.data)) ?? codes[0]?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function PermissionRequest({ canAskAgain, onRequest }: { canAskAgain: boolean; onRequest: () => void }) {
+  const styles = useStyles();
   return (
     <View style={styles.permission}>
       <Text style={styles.permissionText}>
@@ -123,7 +247,7 @@ function PermissionRequest({ canAskAgain, onRequest }: { canAskAgain: boolean; o
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, gap: spacing.md },
   cameraBox: {
@@ -141,9 +265,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  overlayText: { color: colors.background, fontSize: 16 },
+  overlayText: { color: CAMERA_OVERLAY_TEXT, fontSize: 16 },
+  overlayDetail: { color: CAMERA_OVERLAY_TEXT, fontSize: 13, textAlign: 'center', paddingHorizontal: spacing.md },
+  summary: { backgroundColor: colors.chartTrack, borderRadius: 12, padding: spacing.md },
+  summaryText: { fontSize: 15, color: colors.text },
   hint: { fontSize: 14, color: colors.textMuted, textAlign: 'center' },
   permission: { padding: spacing.lg, gap: spacing.md, alignItems: 'stretch' },
   permissionText: { fontSize: 15, color: colors.text, textAlign: 'center' },
   manual: { marginTop: spacing.md },
-});
+}));

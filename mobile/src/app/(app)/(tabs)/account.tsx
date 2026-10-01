@@ -1,17 +1,21 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 
 import { accountApi, authApi } from '../../../api/endpoints';
+import { API_BASE_URL } from '../../../config';
 import { errorMessage } from '../../../api/messages';
 import { shareExport } from '../../../account/exportFile';
 import { useAppLock } from '../../../auth/AppLock';
 import { useAuth, useToken } from '../../../auth/AuthProvider';
 import { isBiometricAvailable } from '../../../auth/biometrics';
 import { Button, ErrorBanner, TextField } from '../../../ui/components';
-import { colors, spacing } from '../../../ui/theme';
+import { makeStyles, spacing, useColors } from '../../../ui/theme';
 
 export default function AccountScreen() {
+  const router = useRouter();
+  const styles = useStyles();
   const token = useToken();
   const { signOut } = useAuth();
   const me = useQuery({ queryKey: ['me'], queryFn: () => authApi.me(token) });
@@ -32,16 +36,30 @@ export default function AccountScreen() {
       <View style={styles.card}>
         <Text style={styles.label}>Conectado como</Text>
         <Text style={styles.email}>{me.data?.email ?? '…'}</Text>
+        <Text style={styles.server} selectable>
+          Servidor: {API_BASE_URL}
+        </Text>
         <Button title="Sair" variant="secondary" onPress={() => void signOut()} />
       </View>
 
       <BiometricSetting />
 
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/budget')}
+        style={({ pressed }) => [styles.card, styles.linkRow, pressed && styles.pressed]}>
+        <View style={styles.switchText}>
+          <Text style={styles.title}>Orçamento mensal</Text>
+          <Text style={styles.text}>Limite do mês e por categoria</Text>
+        </View>
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+
       <View style={styles.card}>
         <Text style={styles.title}>Seus dados</Text>
         <Text style={styles.text}>
-          Baixe tudo o que o app guarda sobre você: sua conta e todas as notas fiscais com itens e pagamentos,
-          em um arquivo JSON.
+          Baixe tudo o que o app guarda sobre você: sua conta, as notas fiscais com itens e pagamentos, sua
+          lista de compras e seus orçamentos, em um arquivo JSON.
         </Text>
         {exportData.error && <ErrorBanner message={exportErrorMessage(exportData.error)} />}
         <Button title="Exportar meus dados" onPress={() => exportData.mutate()} loading={exportData.isPending} />
@@ -91,6 +109,8 @@ export default function AccountScreen() {
 }
 
 function BiometricSetting() {
+  const colors = useColors();
+  const styles = useStyles();
   const { enabled, setEnabled } = useAppLock();
   const [available, setAvailable] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -137,15 +157,19 @@ function exportErrorMessage(error: unknown): string {
     : errorMessage(error);
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   content: { padding: spacing.md, gap: spacing.md, backgroundColor: colors.surface, flexGrow: 1 },
   card: { backgroundColor: colors.background, borderRadius: 12, padding: spacing.md, gap: spacing.md },
   dangerCard: { borderWidth: 1, borderColor: colors.dangerBackground },
   label: { fontSize: 14, color: colors.textMuted },
   email: { fontSize: 18, fontWeight: '600', color: colors.text },
+  server: { fontSize: 12, color: colors.textMuted },
   title: { fontSize: 16, fontWeight: '700', color: colors.text },
   text: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
   actions: { gap: spacing.sm },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   switchText: { flex: 1, gap: spacing.xs },
-});
+  linkRow: { flexDirection: 'row', alignItems: 'center' },
+  pressed: { opacity: 0.7 },
+  chevron: { fontSize: 24, color: colors.textMuted },
+}));

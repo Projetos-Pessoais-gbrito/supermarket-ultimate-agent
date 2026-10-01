@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.supermarketagent.TestcontainersConfiguration;
 import com.supermarketagent.insight.SpendingInsight.MonthTotal;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.YearMonth;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,42 @@ class SpendingInsightServiceTest {
         assertThat(insight.currentMonth()).isEqualTo(month("2026-09", "150.00", 1));
         assertThat(insight.previousMonth()).isEqualTo(month("2026-08", "100.00", 1));
         assertThat(insight.changePercent()).isEqualByComparingTo("50.0");
+    }
+
+    @Test
+    void comparesAMonthInProgressWithTheSameDaysOfThePreviousMonth() {
+        data.receipt(ana, assai, "2026-08-05T15:00:00Z", rice, "4", "25.00");   // 100, before day 10
+        data.receipt(ana, assai, "2026-08-25T15:00:00Z", rice, "8", "25.00");   // 200, after day 10
+        data.receipt(ana, assai, "2026-09-05T15:00:00Z", rice, "6", "25.00");   // 150
+
+        SpendingInsight insight = service.spending(ana, LocalDate.of(2026, 9, 10), 6);
+
+        assertThat(insight.comparedUntilDay()).isEqualTo(10);
+        assertThat(insight.previousMonthToDate()).isEqualTo(month("2026-08", "100.00", 1));
+        assertThat(insight.previousMonth().total()).isEqualByComparingTo("300.00");
+        assertThat(insight.changePercent()).isEqualByComparingTo("50.0");
+    }
+
+    @Test
+    void usesTheWholePreviousMonthWhenItIsShorter() {
+        // 31 March against February (28 days): all of February
+        data.receipt(ana, assai, "2026-02-27T15:00:00Z", rice, "4", "25.00");
+        data.receipt(ana, assai, "2026-03-05T15:00:00Z", rice, "2", "25.00");
+
+        SpendingInsight insight = service.spending(ana, LocalDate.of(2026, 3, 31), 3);
+
+        assertThat(insight.comparedUntilDay()).isEqualTo(28);
+        assertThat(insight.previousMonthToDate().total()).isEqualByComparingTo("100.00");
+        assertThat(insight.changePercent()).isEqualByComparingTo("-50.0");
+    }
+
+    @Test
+    void countsPurchasesLateOnTheLastComparedDayInSaoPauloTime() {
+        // 11 August 02:00 UTC is still 10 August 23:00 in São Paulo
+        data.receipt(ana, assai, "2026-08-11T02:00:00Z", rice, "1", "25.00");
+
+        assertThat(service.spending(ana, LocalDate.of(2026, 9, 10), 3).previousMonthToDate().total())
+                .isEqualByComparingTo("25.00");
     }
 
     @Test
@@ -124,6 +161,23 @@ class SpendingInsightServiceTest {
 
         assertThat(insight.currentMonth().total()).isEqualByComparingTo("0");
         assertThat(insight.byStore()).isEmpty();
+    }
+
+    @Test
+    void allCoversEveryMonthSinceTheFirstReceipt() {
+        data.receipt(ana, assai, "2026-03-13T15:00:00Z", rice, "1", "25.00");
+        data.receipt(ana, assai, "2026-09-10T15:00:00Z", rice, "1", "25.00");
+
+        SpendingInsight insight = service.spending(ana, SEPTEMBER, InsightWindow.ALL);
+
+        assertThat(insight.monthly()).extracting(MonthTotal::month).first().isEqualTo("2026-03");
+        assertThat(insight.monthly()).hasSize(7);
+        assertThat(insight.byStore().getFirst().total()).isEqualByComparingTo("50.00");
+    }
+
+    @Test
+    void allWithoutReceiptsShowsJustTheCurrentMonth() {
+        assertThat(service.spending(ana, SEPTEMBER, InsightWindow.ALL).monthly()).hasSize(1);
     }
 
     @Test

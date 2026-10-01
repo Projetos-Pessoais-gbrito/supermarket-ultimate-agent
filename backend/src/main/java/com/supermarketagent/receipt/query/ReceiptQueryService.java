@@ -1,10 +1,16 @@
 package com.supermarketagent.receipt.query;
 
+import com.supermarketagent.catalog.Product;
+import com.supermarketagent.catalog.ProductCategory;
+import com.supermarketagent.catalog.ProductRepository;
 import com.supermarketagent.catalog.Store;
+import com.supermarketagent.catalog.StoreProduct;
 import com.supermarketagent.receipt.persistence.Receipt;
 import com.supermarketagent.receipt.persistence.ReceiptRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,19 +20,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class ReceiptQueryService {
 
     private final ReceiptRepository receipts;
+    private final ProductRepository products;
 
-    ReceiptQueryService(ReceiptRepository receipts) {
+    ReceiptQueryService(ReceiptRepository receipts, ProductRepository products) {
         this.receipts = receipts;
-    }
-
-    public Page<ReceiptSummary> list(long userId, int page, int size) {
-        return receipts.findSummariesByUserId(userId, PageRequest.of(page, size));
+        this.products = products;
     }
 
     public ReceiptDetails details(long userId, long receiptId) {
         Receipt receipt = receipts.findByIdAndUserId(receiptId, userId)
                 .orElseThrow(() -> new ReceiptNotFoundException(receiptId));
         Store store = receipt.getStore();
+        // One query for the canonical products of all items (friendly names and categories)
+        Map<Long, Product> productsById = products.findAllById(receipt.getItems().stream()
+                        .map(item -> item.getStoreProduct().getProductId())
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList())
+                .stream().collect(Collectors.toMap(Product::getId, Function.identity()));
         return new ReceiptDetails(
                 receipt.getId(),
                 receipt.getAccessKey(),
@@ -39,14 +50,23 @@ public class ReceiptQueryService {
                 receipt.getDiscountAmount(),
                 receipt.getApproximateTaxes(),
                 receipt.getItems().stream()
-                        .map(item -> new ReceiptDetails.Item(
-                                item.getLineNumber(),
-                                item.getStoreProduct().getStoreCode(),
-                                item.getStoreProduct().getDescription(),
-                                item.getQuantity(),
-                                item.getUnit(),
-                                item.getUnitPrice(),
-                                item.getTotalPrice()))
+                        .map(item -> {
+                            StoreProduct storeProduct = item.getStoreProduct();
+                            Product product = productsById.get(storeProduct.getProductId());
+                            return new ReceiptDetails.Item(
+                                    item.getLineNumber(),
+                                    storeProduct.getStoreCode(),
+                                    storeProduct.getDescription(),
+                                    item.getQuantity(),
+                                    item.getUnit(),
+                                    item.getUnitPrice(),
+                                    item.getTotalPrice(),
+                                    product == null ? null : product.getId(),
+                                    product == null ? null : product.getFriendlyName(),
+                                    product == null || product.getCategory() == null
+                                            ? null
+                                            : ProductCategory.valueOf(product.getCategory()).label());
+                        })
                         .toList(),
                 receipt.getPayments().stream()
                         .map(payment -> new ReceiptDetails.Payment(payment.getMethod(), payment.getAmount()))

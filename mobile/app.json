@@ -2,14 +2,16 @@
   "expo": {
     "name": "Supermarket Agent",
     "slug": "supermarket-agent",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.gbrito.supermarketagent"
     },
     "android": {
+      "package": "com.gbrito.supermarketagent",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -37,6 +39,14 @@
         "expo-local-authentication",
         {
           "faceIDPermission": "Permita o uso do Face ID para desbloquear o app com segurança."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permita o acesso às fotos para importar notas fiscais a partir de imagens.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],

@@ -34,12 +34,22 @@ export type ReceiptSummary = {
 export type ReceiptItem = {
   lineNumber: number;
   code: string;
+  /** As printed on the receipt */
   description: string;
   quantity: number;
   unit: string;
   unitPrice: number;
   totalPrice: number;
+  /** Canonical product; null until matched */
+  productId: number | null;
+  /** Friendly name written by the AI; null until available */
+  productName: string | null;
+  categoryLabel: string | null;
 };
+
+export type PricePoint = { issuedAt: string; storeId: number; storeName: string; unitPrice: number; unit: string };
+
+export type PriceHistory = { productId: number; name: string; prices: PricePoint[] };
 
 export type ReceiptDetails = {
   id: number;
@@ -72,6 +82,9 @@ export type MonthTotal = { month: string; total: number; receiptCount: number };
 export type SpendingInsight = {
   currentMonth: MonthTotal;
   previousMonth: MonthTotal;
+  /** Previous month from day 1 to comparedUntilDay: the base of changePercent */
+  previousMonthToDate: MonthTotal;
+  comparedUntilDay: number;
   changePercent: number | null;
   monthly: MonthTotal[];
   byStore: { storeId: number; storeName: string; total: number; receiptCount: number }[];
@@ -79,7 +92,9 @@ export type SpendingInsight = {
 };
 
 export type SavingsInsight = {
-  days: number;
+  months: number;
+  /** Purchases are compared with the best price within this many days of them */
+  comparisonWindowDays: number;
   potentialSavings: number;
   comparedSpending: number;
   products: {
@@ -123,4 +138,44 @@ export type CategoryProducts = {
     lastStoreName: string;
     lastBoughtAt: string;
   }[];
+};
+
+export type MonthlyTotal = { month: string; total: number; receiptCount: number };
+
+/** GET /api/receipts: a page plus totals per month of everything the filters matched. */
+export type ReceiptListPage = Page<ReceiptSummary> & {
+  monthlyTotals: MonthlyTotal[];
+  /** Filter options, taken from all of the user's receipts */
+  stores: string[];
+  months: string[];
+};
+
+export type ReceiptFilters = { store?: string; month?: string; q?: string };
+
+export type BudgetCategoryLimit = { category: string; label: string; limit: number };
+
+export type BudgetSettings = { overall: number | null; categories: BudgetCategoryLimit[] };
+
+export type BudgetCategoryOption = { category: string; label: string };
+
+export type BudgetState = 'OK' | 'WARNING' | 'OVER';
+
+export type BudgetLine = {
+  category: string | null;
+  label: string;
+  limit: number;
+  spent: number;
+  percentUsed: number;
+  /** Spending at the current pace by the end of the month */
+  projected: number;
+  projectedOver: boolean;
+  state: BudgetState;
+};
+
+export type BudgetStatus = {
+  month: string;
+  daysElapsed: number;
+  daysInMonth: number;
+  overall: BudgetLine | null;
+  categories: BudgetLine[];
 };

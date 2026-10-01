@@ -1,4 +1,4 @@
-import { ApiError, apiRequest } from './client';
+import { ApiError, apiRequest, apiRequestWithStatus } from './client';
 import { errorMessage } from './messages';
 
 jest.mock('../config', () => ({ API_BASE_URL: 'http://api.test' }));
@@ -27,6 +27,7 @@ describe('apiRequest', () => {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json', Authorization: 'Bearer abc' },
       body: '{"qrCodeUrl":"x"}',
+      signal: expect.any(AbortSignal),
     });
   });
 
@@ -38,6 +39,15 @@ describe('apiRequest', () => {
     );
   });
 
+  it('can report the status, e.g. 200 for a receipt that already existed', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { id: 7 }));
+
+    await expect(apiRequestWithStatus('/api/receipts', { method: 'POST', body: {} })).resolves.toEqual({
+      data: { id: 7 },
+      status: 200,
+    });
+  });
+
   it('reports an unreachable backend as status 0', async () => {
     fetchMock.mockRejectedValue(new TypeError('Network request failed'));
 
@@ -46,8 +56,8 @@ describe('apiRequest', () => {
 });
 
 describe('errorMessage', () => {
-  it('explains how to fix an unreachable backend', () => {
-    expect(errorMessage(new ApiError(0))).toContain('mesma rede Wi-Fi');
+  it('explains an unreachable server in user terms', () => {
+    expect(errorMessage(new ApiError(0))).toBe('Sem conexão com o servidor. Verifique sua internet e tente novamente.');
   });
 
   it('explains that SEFAZ is down', () => {
@@ -73,5 +83,37 @@ describe('error codes', () => {
 
   it('explains key-only links in Portuguese', () => {
     expect(errorMessage(new ApiError(422, 'key only', 'KEY_ONLY_LINK'))).toContain('captcha');
+  });
+});
+
+describe('timeouts', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    jest.useFakeTimers();
+  });
+  afterEach(() => jest.useRealTimers());
+
+  it('gives up on a stalled request instead of waiting forever', async () => {
+    fetchMock.mockImplementation(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        }),
+    );
+
+    const request = apiRequest('/api/insights/spending', { timeoutMs: 1_000 });
+    jest.advanceTimersByTime(1_000);
+
+    await expect(request).rejects.toMatchObject({ status: 0, code: 'TIMEOUT' });
+  });
+
+  it('explains a timeout in Portuguese', () => {
+    expect(errorMessage(new ApiError(0, undefined, 'TIMEOUT'))).toContain('demorou demais');
+  });
+});
+
+describe('rate limiting', () => {
+  it('asks the user to wait after too many attempts', () => {
+    expect(errorMessage(new ApiError(429))).toBe('Muitas tentativas. Tente de novo em alguns minutos.');
   });
 });

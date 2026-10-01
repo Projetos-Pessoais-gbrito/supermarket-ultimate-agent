@@ -1,6 +1,6 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, View, type TextInputProps } from 'react-native';
 
-import { colors, spacing } from './theme';
+import { makeStyles, spacing, useColors } from './theme';
 
 type ButtonProps = {
   title: string;
@@ -11,6 +11,8 @@ type ButtonProps = {
 };
 
 export function Button({ title, onPress, loading = false, disabled = false, variant = 'primary' }: ButtonProps) {
+  const colors = useColors();
+  const styles = useStyles();
   const primary = variant !== 'secondary';
   const danger = variant === 'danger';
   return (
@@ -27,15 +29,24 @@ export function Button({ title, onPress, loading = false, disabled = false, vari
         (disabled || loading) && styles.buttonDisabled,
       ]}>
       {loading ? (
-        <ActivityIndicator color={primary ? colors.background : colors.primary} />
+        <ActivityIndicator color={danger ? colors.onDanger : primary ? colors.onPrimary : colors.primary} />
       ) : (
-        <Text style={[styles.buttonText, !primary && { color: colors.primary }]}>{title}</Text>
+        <Text
+          style={[
+            styles.buttonText,
+            danger && { color: colors.onDanger },
+            !primary && { color: colors.primary },
+          ]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );
 }
 
 export function TextField({ label, ...props }: TextInputProps & { label: string }) {
+  const colors = useColors();
+  const styles = useStyles();
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
@@ -50,6 +61,7 @@ export function TextField({ label, ...props }: TextInputProps & { label: string 
 }
 
 export function ErrorBanner({ message }: { message: string | null }) {
+  const styles = useStyles();
   if (!message) {
     return null;
   }
@@ -60,23 +72,26 @@ export function ErrorBanner({ message }: { message: string | null }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
+  // minHeight (not height) and vertical padding let buttons grow with the system font size
   button: {
     minHeight: 48,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   buttonPrimary: { backgroundColor: colors.primary },
   buttonSecondary: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.primary },
   buttonDanger: { backgroundColor: colors.danger },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: colors.background, fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.onPrimary, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   field: { marginBottom: spacing.md },
   label: { fontSize: 14, color: colors.textMuted, marginBottom: spacing.xs },
   input: {
     minHeight: 48,
+    paddingVertical: spacing.sm,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
@@ -92,4 +107,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorText: { color: colors.danger, fontSize: 14 },
-});
+}));

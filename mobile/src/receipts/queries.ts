@@ -1,6 +1,7 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { receiptsApi } from '../api/endpoints';
+import type { ReceiptFilters } from '../api/types';
 import { useToken } from '../auth/AuthProvider';
 import { insightKeys } from '../insights/queries';
 
@@ -9,14 +10,17 @@ const PAGE_SIZE = 20;
 export const receiptKeys = {
   all: ['receipts'] as const,
   list: () => [...receiptKeys.all, 'list'] as const,
+  filtered: (filters: ReceiptFilters) => [...receiptKeys.list(), filters] as const,
   details: (id: number) => [...receiptKeys.all, 'details', id] as const,
 };
 
-export function useReceiptList() {
+export function useReceiptList(filters: ReceiptFilters = {}) {
   const token = useToken();
   return useInfiniteQuery({
-    queryKey: receiptKeys.list(),
-    queryFn: ({ pageParam }) => receiptsApi.list(token, pageParam, PAGE_SIZE),
+    queryKey: receiptKeys.filtered(filters),
+    queryFn: ({ pageParam }) => receiptsApi.list(token, pageParam, PAGE_SIZE, filters),
+    // Keeps the list and filter options on screen while another filter loads
+    placeholderData: keepPreviousData,
     initialPageParam: 0,
     getNextPageParam: last => (last.page + 1 < last.totalPages ? last.page + 1 : undefined),
   });
@@ -27,9 +31,42 @@ export function useImportReceipt() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (qrCodeUrl: string) => receiptsApi.import(token, qrCodeUrl.trim()),
-    onSuccess: receipt => {
+    onSuccess: ({ receipt }) => {
       queryClient.setQueryData(receiptKeys.details(receipt.id), receipt);
       // A new receipt changes every insight
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
+        queryClient.invalidateQueries({ queryKey: insightKeys.all }),
+      ]);
+    },
+  });
+}
+
+/** Same as {@link useImportReceipt}, for a page opened in the app after the SEFAZ captcha. */
+export function useImportReceiptPage() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ accessKey, html }: { accessKey: string; html: string }) =>
+      receiptsApi.importPage(token, accessKey, html),
+    onSuccess: ({ receipt }) => {
+      queryClient.setQueryData(receiptKeys.details(receipt.id), receipt);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
+        queryClient.invalidateQueries({ queryKey: insightKeys.all }),
+      ]);
+    },
+  });
+}
+
+/** Deletes a receipt; the list and every insight change, so both are refreshed. */
+export function useDeleteReceipt() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => receiptsApi.remove(token, id),
+    onSuccess: (_result, id) => {
+      queryClient.removeQueries({ queryKey: receiptKeys.details(id) });
       return Promise.all([
         queryClient.invalidateQueries({ queryKey: receiptKeys.list() }),
         queryClient.invalidateQueries({ queryKey: insightKeys.all }),

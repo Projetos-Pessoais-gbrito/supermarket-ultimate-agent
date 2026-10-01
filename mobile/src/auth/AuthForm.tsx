@@ -1,17 +1,18 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text } from 'react-native';
 
 import { ApiError } from '../api/client';
 import { errorMessage } from '../api/messages';
 import { Button, ErrorBanner, TextField } from '../ui/components';
-import { colors, spacing } from '../ui/theme';
+import { makeStyles, spacing } from '../ui/theme';
 import { useAuth } from './AuthProvider';
 import { MIN_PASSWORD_LENGTH, validateCredentials } from './validation';
 
 type Mode = 'login' | 'register';
 
 export function AuthForm({ mode }: { mode: Mode }) {
+  const styles = useStyles();
   const { signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -88,10 +89,10 @@ function authErrorMessage(error: unknown, mode: Mode): string {
   return errorMessage(error);
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(colors => ({
   flex: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, justifyContent: 'center', padding: spacing.lg },
   title: { fontSize: 26, fontWeight: '700', color: colors.text, marginBottom: spacing.sm },
   subtitle: { fontSize: 16, color: colors.textMuted, marginBottom: spacing.lg },
   link: { marginTop: spacing.lg, textAlign: 'center', color: colors.primary, fontSize: 15 },
-});
+}));

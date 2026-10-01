@@ -22,17 +22,21 @@ public class CategoryProductsService {
     public static final String UNCATEGORIZED = "none";
 
     private final JdbcTemplate jdbc;
+    private final InsightWindow window;
 
-    CategoryProductsService(JdbcTemplate jdbc) {
+    CategoryProductsService(JdbcTemplate jdbc, InsightWindow window) {
         this.jdbc = jdbc;
+        this.window = window;
     }
 
     /** Empty when {@code category} is not a known category or {@code none}. */
-    public Optional<CategoryProducts> products(long userId, String category, YearMonth currentMonth, int months) {
+    public Optional<CategoryProducts> products(long userId, String category, YearMonth currentMonth,
+                                               int requestedMonths) {
         boolean uncategorized = UNCATEGORIZED.equals(category);
         if (!uncategorized && !isKnown(category)) {
             return Optional.empty();
         }
+        int months = window.months(userId, currentMonth, requestedMonths);
         Timestamp from = Timestamp.from(startOf(currentMonth.minusMonths(months - 1L)));
         Timestamp to = Timestamp.from(endOf(currentMonth));
 
@@ -40,7 +44,7 @@ public class CategoryProductsService {
         List<Product> products = jdbc.query("""
                 WITH items AS (
                     SELECT p.id AS product_id,
-                           COALESCE(p.normalized_name, sp.description) AS name,
+                           COALESCE(p.display_name, p.normalized_name, sp.description) AS name,
                            COALESCE(s.display_name, s.name) AS store_name,
                            i.unit_price, i.total_price, r.issued_at, i.id AS item_id
                     FROM receipts r
