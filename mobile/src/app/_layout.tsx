@@ -9,6 +9,7 @@ import { AppLock } from '../auth/AppLock';
 import { AuthProvider, useAuth } from '../auth/AuthProvider';
 import { navigationTheme } from '../ui/navigationTheme';
 import { makeStyles, useColors } from '../ui/theme';
+import { UpdateBanner } from '../updates/UpdateBanner';
 
 export default function RootLayout() {
   const colors = useColors();
@@ -20,6 +21,7 @@ export default function RootLayout() {
           <AppLock>
             <RootNavigator />
           </AppLock>
+          <UpdateBanner />
           {/* auto = light icons on dark screens and vice versa */}
           <StatusBar style="auto" />
         </QueryProvider>
