@@ -53,6 +53,19 @@
     "scheme": "supermarketagent",
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ad727e16-6732-4c99-9be0-9785bbbdedbd"
+      }
+    },
+    "owner": "gustavo_brito_2000",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ad727e16-6732-4c99-9be0-9785bbbdedbd"
     }
   }
 }
