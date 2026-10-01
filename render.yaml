@@ -1,0 +1,54 @@
+# Render Blueprint: the API and its PostgreSQL database (see docs/DEPLOY.md)
+services:
+  - type: web
+    name: supermarket-agent-api
+    runtime: docker
+    # Render has no South America region; Virginia is the closest
+    region: virginia
+    # Free instances sleep after 15 min idle; the first request then takes about a minute
+    plan: free
+    branch: main
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    buildFilter:
+      paths:
+        - backend/**
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: supermarket-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: supermarket-db
+          property: port
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: supermarket-db
+          property: database
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: supermarket-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: supermarket-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      # Asked for when the Blueprint is created; AI features are skipped when empty
+      - key: GEMINI_API_KEY
+        sync: false
+      # Take the client IP from Render's proxy so login rate limits are per user (ADR 0006)
+      - key: SERVER_FORWARD_HEADERS_STRATEGY
+        value: native
+
+databases:
+  - name: supermarket-db
+    databaseName: supermarket
+    user: supermarket
+    region: virginia
+    postgresMajorVersion: "16"
+    # Not "free": Render deletes free databases 30 days after creation
+    plan: basic-256mb
