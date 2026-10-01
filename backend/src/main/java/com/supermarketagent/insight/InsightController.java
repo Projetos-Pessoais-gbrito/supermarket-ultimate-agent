@@ -26,19 +26,21 @@ class InsightController {
     private final ProductPriceInsightService prices;
     private final SavingsInsightService savings;
     private final BestDayInsightService bestDay;
+    private final BestTimeInsightService bestTime;
     private final InflationInsightService inflation;
     private final InsightSummaryService summary;
     private final CategoryProductsService categoryProducts;
     private final Clock clock;
 
     InsightController(SpendingInsightService spending, ProductPriceInsightService prices,
-                      SavingsInsightService savings, BestDayInsightService bestDay,
+                      SavingsInsightService savings, BestDayInsightService bestDay, BestTimeInsightService bestTime,
                       InflationInsightService inflation, InsightSummaryService summary,
                       CategoryProductsService categoryProducts, Clock clock) {
         this.spending = spending;
         this.prices = prices;
         this.savings = savings;
         this.bestDay = bestDay;
+        this.bestTime = bestTime;
         this.inflation = inflation;
         this.summary = summary;
         this.categoryProducts = categoryProducts;
@@ -70,10 +72,23 @@ class InsightController {
         return savings.savings(userId(jwt), currentMonth(), months);
     }
 
+    @GetMapping("/savings/details")
+    SavingsDetails savingsDetails(@AuthenticationPrincipal Jwt jwt,
+                                  @RequestParam(defaultValue = "3") @Min(InsightWindow.ALL) @Max(120) int months) {
+        return savings.details(userId(jwt), currentMonth(), months);
+    }
+
     @GetMapping("/best-day")
     BestDayInsight bestDay(@AuthenticationPrincipal Jwt jwt,
                            @RequestParam(defaultValue = "365") @Min(30) @Max(3650) int days) {
         return bestDay.bestDay(userId(jwt), clock.instant(), days);
+    }
+
+    /** Replaces /best-day in the app (1.2.0+): per store, and only patterns unlikely to be chance. */
+    @GetMapping("/best-time")
+    BestTimeInsight bestTime(@AuthenticationPrincipal Jwt jwt,
+                             @RequestParam(defaultValue = "365") @Min(30) @Max(3650) int days) {
+        return bestTime.bestTime(userId(jwt), clock.instant(), days);
     }
 
     @GetMapping("/inflation")

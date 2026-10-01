@@ -108,14 +108,70 @@ export type SavingsInsight = {
   }[];
 };
 
-export type BestDayGroup = { key: string; label: string; percentVsAverage: number; samples: number };
+/** A purchase that cost more than the cheapest one of the same product nearby in time. */
+export type SavingsPurchase = {
+  receiptId: number;
+  issuedAt: string;
+  storeName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  /** (unitPrice - bestUnitPrice) x quantity */
+  extraPaid: number;
+  /** The reference: lowest price paid within comparisonWindowDays, before or after */
+  bestUnitPrice: number;
+  bestStoreName: string;
+  bestIssuedAt: string;
+};
 
-export type BestDayInsight = {
-  comparableItems: number;
-  bestPeriod: BestDayGroup | null;
-  byPeriodOfMonth: BestDayGroup[];
-  bestWeekday: BestDayGroup | null;
-  byWeekday: BestDayGroup[];
+/** The purchases behind SavingsInsight.potentialSavings (same total). */
+export type SavingsDetails = {
+  months: number;
+  comparisonWindowDays: number;
+  potentialSavings: number;
+  products: {
+    productId: number;
+    name: string;
+    extraPaid: number;
+    /** Newest first */
+    purchases: SavingsPurchase[];
+  }[];
+};
+
+/** PATTERN only when the gap is unlikely to be chance (backend BestTimeStats). */
+export type BestTimeStatus = 'PATTERN' | 'NO_PATTERN' | 'NOT_ENOUGH_DATA';
+
+export type BestTimeGroup = {
+  /** e.g. DAYS_1_10 or WEDNESDAY */
+  key: string;
+  label: string;
+  /** Against the usual price at the store: -3.5 = 3.5% cheaper */
+  percentVsStoreAverage: number;
+  samples: number;
+};
+
+export type BestTimeFinding = {
+  status: BestTimeStatus;
+  /** Only with PATTERN */
+  best: BestTimeGroup | null;
+  /** How much cheaper `best` is than the other groups at the same store */
+  percentCheaper: number | null;
+  /** Calendar order */
+  groups: BestTimeGroup[];
+};
+
+export type StoreBestTime = {
+  storeId: number;
+  storeName: string;
+  comparablePurchases: number;
+  periodOfMonth: BestTimeFinding;
+  weekday: BestTimeFinding;
+};
+
+export type BestTimeInsight = {
+  days: number;
+  /** Biggest pattern first */
+  stores: StoreBestTime[];
 };
 
 export type InflationInsight = {

@@ -1,6 +1,6 @@
 {
   "name": "supermarket-agent-mobile",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -16,6 +16,7 @@
     "expo-secure-store": "~57.0.4",
     "expo-sharing": "~57.0.22",
     "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.24",
     "react": "19.2.3",
     "react-native": "0.86.3",
     "react-native-safe-area-context": "~5.7.0",
@@ -39,7 +40,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
-    "test": "jest"
+    "test": "jest",
+    "publish-update": "npx eas-cli update --channel preview --environment preview"
   },
   "private": true,
   "jest": {

@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, T
 
 import { errorMessage } from '../../../api/messages';
 import type {
-  BestDayInsight,
+  BestTimeInsight,
   InflationInsight,
   InsightSummary,
   SavingsInsight,
@@ -21,7 +21,8 @@ import {
   type Period,
 } from '../../../insights/period';
 import { monthComparisonText } from '../../../insights/comparison';
-import { useBestDay, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
+import { bestTimeTile } from '../../../insights/bestTimeText';
+import { useBestTime, useInflation, useSavings, useSpending, useSummary } from '../../../insights/queries';
 import { BarList, ColumnChart } from '../../../ui/charts';
 import { Button, ErrorBanner } from '../../../ui/components';
 import { makeStyles, spacing, useColors } from '../../../ui/theme';
@@ -41,15 +42,15 @@ export default function DashboardScreen() {
 
   const spending = useSpending(period);
   const savings = useSavings(period);
-  const bestDay = useBestDay(period);
+  const bestTime = useBestTime(period);
   const inflation = useInflation();
   // Optional AI tips: never block the dashboard or show their errors
   const summary = useSummary();
 
-  const queries = [spending, savings, bestDay, inflation, summary];
+  const queries = [spending, savings, bestTime, inflation, summary];
   const refreshing = queries.some(query => query.isRefetching);
   const refresh = () => Promise.all(queries.map(query => query.refetch()));
-  const error = spending.error ?? savings.error ?? bestDay.error ?? inflation.error;
+  const error = spending.error ?? savings.error ?? bestTime.error ?? inflation.error;
   const hasPurchases = spending.data?.monthly.some(month => month.receiptCount > 0) ?? false;
 
   return (
@@ -72,7 +73,7 @@ export default function DashboardScreen() {
               <BudgetCard />
               <View style={styles.tiles}>
                 <SavingsTile savings={savings.data} period={period} />
-                <BestTimeTile bestDay={bestDay.data} />
+                <BestTimeTile bestTime={bestTime.data} period={period} />
               </View>
               {inflation.data && <InflationCard inflation={inflation.data} />}
               <Card title="Gastos por mês" subtitle={periodDescription(period)}>
@@ -158,7 +159,7 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
   if (!latest || latest.changePercent === null) {
     // Keep the card visible so people learn the feature exists and what it needs
     return (
-      <Card title="Sua inflação" subtitle="Comparado ao mês anterior">
+      <Card title="Sua inflação" subtitle="Mesmos produtos, comparados ao mês anterior">
         <Text style={styles.muted}>
           Compre os mesmos produtos em meses seguidos para ver sua inflação: comparamos o preço de cada
           produto com o do mês anterior.
@@ -171,7 +172,7 @@ function InflationCard({ inflation }: { inflation: InflationInsight }) {
   const increases = inflation.changes.filter(product => product.changePercent > 0).slice(0, 3);
 
   return (
-    <Card title="Sua inflação" subtitle={`${formatMonthLong(latest.month)}, comparado ao mês anterior`}>
+    <Card title="Sua inflação" subtitle={`${formatMonthLong(latest.month)}: mesmos produtos, comparados ao mês anterior`}>
       <Text style={styles.tileValue}>
         {direction} {formatPercent(change)} {change > 0 ? 'mais caro' : change < 0 ? 'mais barato' : 'sem variação'}
       </Text>
@@ -224,37 +225,40 @@ function PeriodSelector({ value, onChange }: { value: Period; onChange: (period:
 
 function SavingsTile({ savings, period }: { savings: SavingsInsight | undefined; period: Period }) {
   const styles = useStyles();
+  const router = useRouter();
   return (
-    <View style={[styles.card, styles.tile]}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/savings', params: { months: String(period) } })}
+      accessibilityRole="button"
+      accessibilityHint="Explica o cálculo e mostra as compras"
+      style={({ pressed }) => [styles.card, styles.tile, pressed && styles.pressed]}>
       <Text style={styles.cardLabel}>Economia possível</Text>
       <Text style={styles.tileValue}>{savings ? formatCurrency(savings.potentialSavings) : '…'}</Text>
       <Text style={styles.muted}>
         {savings && savings.potentialSavings > 0
-          ? `${periodDescription(period).toLowerCase()}, pagando o menor preço visto até 2 meses antes ou depois`
+          ? 'se pagasse sempre o menor preço que você já pagou por cada produto'
           : 'Compre os mesmos produtos mais vezes para comparar preços'}
       </Text>
-    </View>
+      <Text style={styles.tileLink}>Entenda o cálculo ›</Text>
+    </Pressable>
   );
 }
 
-function BestTimeTile({ bestDay }: { bestDay: BestDayInsight | undefined }) {
+function BestTimeTile({ bestTime, period }: { bestTime: BestTimeInsight | undefined; period: Period }) {
   const styles = useStyles();
-  const best = bestDay?.bestPeriod;
+  const router = useRouter();
+  const tile = bestTime ? bestTimeTile(bestTime) : null;
   return (
-    <View style={[styles.card, styles.tile]}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/best-time', params: { months: String(period) } })}
+      accessibilityRole="button"
+      accessibilityHint="Mostra a melhor época em cada mercado"
+      style={({ pressed }) => [styles.card, styles.tile, pressed && styles.pressed]}>
       <Text style={styles.cardLabel}>Melhor época</Text>
-      <Text style={styles.tileValue}>{bestDay ? (best ? best.label : 'Em breve') : '…'}</Text>
-      <Text style={styles.muted}>
-        {best
-          ? best.percentVsAverage < 0
-            ? `preços ${formatPercent(best.percentVsAverage)} abaixo da sua média`
-            : 'seus preços variam pouco ao longo do mês'
-          : 'Precisamos de mais notas ao longo do mês para descobrir'}
-      </Text>
-      {bestDay?.bestWeekday && bestDay.bestWeekday.percentVsAverage < 0 && (
-        <Text style={styles.muted}>Melhor dia: {bestDay.bestWeekday.label}</Text>
-      )}
-    </View>
+      <Text style={styles.tileValue}>{tile ? tile.title : '…'}</Text>
+      {tile && <Text style={styles.muted}>{tile.detail}</Text>}
+      <Text style={styles.tileLink}>Ver por mercado ›</Text>
+    </Pressable>
   );
 }
 
@@ -278,7 +282,7 @@ function OverpaidList({ savings, period }: { savings: SavingsInsight; period: Pe
               Melhor preço {formatCurrency(product.bestUnitPrice)} no {product.bestStoreName}
             </Text>
           </View>
-          <Text style={styles.overpaidValue}>+{formatCurrency(product.extraPaid)}  ›</Text>
+          <Text style={styles.overpaidValue}>{formatCurrency(product.extraPaid)} a mais  ›</Text>
         </Pressable>
       ))}
     </Card>
@@ -339,6 +343,7 @@ const useStyles = makeStyles(colors => ({
   periodTextSelected: { color: colors.text, fontWeight: '600' },
   tile: { flex: 1, gap: spacing.xs },
   tileValue: { fontSize: 22, fontWeight: '700', color: colors.text },
+  tileLink: { fontSize: 13, fontWeight: '600', color: colors.primary, marginTop: 'auto' },
   overpaidRow: {
     flexDirection: 'row',
     alignItems: 'center',

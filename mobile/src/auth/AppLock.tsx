@@ -142,7 +142,7 @@ function LockScreen({
           <Text style={styles.text}>Use sua digital para ver suas notas e seus gastos.</Text>
           {failed && <Text style={styles.text}>Não foi possível confirmar. Tente de novo.</Text>}
           <Button title="Desbloquear com digital" onPress={() => void unlock()} />
-          <Button title="Entrar com senha" variant="secondary" onPress={onUsePassword} />
+          <Button title="Sair e entrar com senha" variant="secondary" onPress={onUsePassword} />
         </View>
       )}
     </View>

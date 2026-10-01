@@ -2,7 +2,7 @@
   "expo": {
     "name": "Supermarket Agent",
     "slug": "supermarket-agent",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -63,6 +63,12 @@
         "projectId": "ad727e16-6732-4c99-9be0-9785bbbdedbd"
       }
     },
-    "owner": "gustavo_brito_2000"
+    "owner": "gustavo_brito_2000",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ad727e16-6732-4c99-9be0-9785bbbdedbd"
+    }
   }
 }

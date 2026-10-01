@@ -13,7 +13,8 @@ export function errorMessage(error: unknown): string {
     return KEY_ONLY_LINK_MESSAGE;
   }
   if (error.code === 'TIMEOUT') {
-    return 'A consulta demorou demais para responder. Verifique a conexão e tente novamente.';
+    // The free server sleeps when idle and takes about a minute to wake up
+    return 'O servidor demorou para responder. Se o app ficou um tempo sem uso, ele pode estar ligando: tente de novo em alguns segundos.';
   }
   switch (error.status) {
     case 0:
