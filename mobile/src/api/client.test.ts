@@ -108,7 +108,7 @@ describe('timeouts', () => {
   });
 
   it('explains a timeout in Portuguese', () => {
-    expect(errorMessage(new ApiError(0, undefined, 'TIMEOUT'))).toContain('demorou demais');
+    expect(errorMessage(new ApiError(0, undefined, 'TIMEOUT'))).toContain('demorou para responder');
   });
 });
 
