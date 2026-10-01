@@ -49,7 +49,6 @@
         "expo-image-picker",
         {
           "photosPermission": "Permita o acesso às fotos para importar notas fiscais a partir de imagens.",
-          "cameraPermission": false,
           "microphonePermission": false
         }
       ]
