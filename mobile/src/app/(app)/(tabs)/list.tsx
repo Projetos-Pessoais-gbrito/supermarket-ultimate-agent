@@ -1,27 +1,38 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '../../../api/client';
 import { errorMessage } from '../../../api/messages';
-import type { PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../../../api/shopping';
+import type { PriceAlert, ProductOption, ShoppingListItem, ShoppingSuggestion } from '../../../api/shopping';
 import { formatCurrency } from '../../../format';
+import { loadMarket, saveMarket } from '../../../shopping/market';
+import { MarketPicker } from '../../../shopping/MarketPicker';
 import {
   useAddToList,
   useClearChecked,
+  useListPrices,
+  useMarkets,
   usePriceAlerts,
+  useProductSearch,
   useRemoveItem,
   useShoppingList,
   useShoppingSuggestions,
   useToggleItem,
 } from '../../../shopping/queries';
+import { SavedLists } from '../../../shopping/SavedLists';
 import {
   alertHeadline,
   formatListQuantity,
+  formatUnitPrice,
   formatUsualQuantity,
+  itemPrice,
+  listEstimate,
   suggestionBestPrice,
   suggestionRhythm,
+  unpricedNote,
+  type ItemPrice,
 } from '../../../shopping/text';
 import { Button, ErrorBanner, TextField } from '../../../ui/components';
 import { makeStyles, spacing, useColors } from '../../../ui/theme';
@@ -46,6 +57,7 @@ export default function ShoppingListScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}>
       <MyList items={list.data} error={list.error} loading={list.isPending} />
+      <SavedLists canSave={(list.data?.length ?? 0) > 0} />
       <Suggestions items={suggestions.data?.items} error={suggestions.error} loading={suggestions.isPending} />
       <Alerts items={alerts.data?.items} error={alerts.error} loading={alerts.isPending} />
     </ScrollView>
@@ -65,13 +77,34 @@ function listErrorMessage(error: unknown): string {
 function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: Error | null; loading: boolean }) {
   const styles = useStyles();
   const colors = useColors();
+  const router = useRouter();
   const [name, setName] = useState('');
+  const [market, setMarket] = useState<string | null>(null);
+  const searchText = useDebounced(name, 250);
+  const options = useProductSearch(searchText);
+  const markets = useMarkets();
+  const prices = useListPrices(market);
   const add = useAddToList();
   const toggle = useToggleItem();
   const remove = useRemoveItem();
   const clearChecked = useClearChecked();
   const mutationError = add.error ?? toggle.error ?? remove.error ?? clearChecked.error;
   const hasChecked = items?.some(item => item.checked) ?? false;
+  const listPrices = market && prices.data?.market === market ? prices.data.items : null;
+  const estimate = listPrices && items && items.length > 0 ? listEstimate(items, listPrices) : null;
+  const visibleOptions = name.trim().length >= 2 ? (options.data ?? []) : [];
+
+  // The market can also be chosen on the "from a receipt" screen, so read it again on focus
+  useFocusEffect(
+    useCallback(() => {
+      loadMarket().then(setMarket);
+    }, []),
+  );
+
+  const chooseMarket = (next: string | null) => {
+    setMarket(next);
+    saveMarket(next);
+  };
 
   const submit = () => {
     const trimmed = name.trim();
@@ -81,20 +114,45 @@ function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: 
     add.mutate({ name: trimmed }, { onSuccess: () => setName('') });
   };
 
+  const addProduct = (option: ProductOption) => {
+    add.mutate({ productId: option.productId }, { onSuccess: () => setName('') });
+  };
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Minha lista</Text>
       <ErrorBanner message={error ? errorMessage(error) : mutationError ? listErrorMessage(mutationError) : null} />
-      <TextField
-        label="Adicionar item"
-        placeholder="Ex.: pão, detergente"
-        value={name}
-        onChangeText={setName}
-        onSubmitEditing={submit}
-        returnKeyType="done"
-        maxLength={200}
-      />
+      {markets.data && <MarketPicker markets={markets.data} value={market} onChange={chooseMarket} />}
+      <View>
+        <TextField
+          label="Adicionar item"
+          placeholder="Ex.: arroz, detergente"
+          value={name}
+          onChangeText={setName}
+          onSubmitEditing={submit}
+          returnKeyType="done"
+          maxLength={200}
+        />
+        {visibleOptions.length > 0 && (
+          <View style={[styles.card, styles.options]}>
+            {visibleOptions.map(option => (
+              <Pressable
+                key={option.productId}
+                accessibilityRole="button"
+                accessibilityLabel={`Adicionar ${option.name} à lista`}
+                onPress={() => addProduct(option)}
+                style={({ pressed }) => [styles.option, pressed && styles.pressed]}>
+                <Text style={styles.optionText} numberOfLines={2}>
+                  {option.name}
+                </Text>
+                <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
       <Button title="Adicionar" onPress={submit} loading={add.isPending} disabled={!name.trim()} />
+      <Button title="Montar com uma nota" variant="secondary" onPress={() => router.push('/list-from-receipt')} />
       {loading ? (
         <ActivityIndicator color={colors.primary} />
       ) : items && items.length > 0 ? (
@@ -103,13 +161,26 @@ function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: 
             <ListRow
               key={item.id}
               item={item}
+              price={listPrices ? itemPrice(item, listPrices) : undefined}
               onToggle={() => toggle.mutate({ id: item.id, checked: !item.checked })}
               onRemove={() => remove.mutate(item.id)}
             />
           ))}
+          {estimate && market && (
+            <View style={styles.totalRow} accessibilityRole="summary">
+              <View style={styles.rowMain}>
+                <Text style={styles.totalLabel}>Total estimado no {market}</Text>
+                <Text style={styles.meta}>Preços da sua última nota desse mercado</Text>
+                {estimate.unpriced > 0 && <Text style={styles.meta}>{unpricedNote(estimate.unpriced)}</Text>}
+              </View>
+              <Text style={styles.totalValue}>{formatCurrency(estimate.total)}</Text>
+            </View>
+          )}
         </View>
       ) : (
-        <Text style={styles.muted}>Sua lista está vazia. Adicione itens ou use as sugestões abaixo.</Text>
+        <Text style={styles.muted}>
+          Sua lista está vazia. Adicione itens, monte com uma nota ou use uma lista salva.
+        </Text>
       )}
       {hasChecked && (
         <Button
@@ -123,7 +194,28 @@ function MyList({ items, error, loading }: { items?: ShoppingListItem[]; error: 
   );
 }
 
-function ListRow({ item, onToggle, onRemove }: { item: ShoppingListItem; onToggle: () => void; onRemove: () => void }) {
+/** The value once it stopped changing for delayMs (avoids a search per keystroke). */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timer);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+/** price: undefined when no market is chosen, null when the item has no price there. */
+function ListRow({
+  item,
+  price,
+  onToggle,
+  onRemove,
+}: {
+  item: ShoppingListItem;
+  price: ItemPrice | null | undefined;
+  onToggle: () => void;
+  onRemove: () => void;
+}) {
   const styles = useStyles();
   const colors = useColors();
   const router = useRouter();
@@ -154,6 +246,20 @@ function ListRow({ item, onToggle, onRemove }: { item: ShoppingListItem; onToggl
           {item.name}
         </Text>
       </Pressable>
+      {price !== undefined && (
+        <View style={styles.price}>
+          {price ? (
+            <>
+              <Text style={[styles.priceValue, item.checked && styles.itemChecked]}>
+                {formatCurrency(price.total)}
+              </Text>
+              <Text style={styles.meta}>{formatUnitPrice(price.unitPrice, price.unit)}</Text>
+            </>
+          ) : (
+            <Text style={styles.meta}>Sem preço aqui</Text>
+          )}
+        </View>
+      )}
       <Pressable accessibilityRole="button" accessibilityLabel={`Remover ${item.name}`} hitSlop={8} onPress={onRemove}>
         <Ionicons name="close" size={20} color={colors.textMuted} />
       </Pressable>
@@ -310,4 +416,20 @@ const useStyles = makeStyles(colors => ({
   meta: { fontSize: 13, color: colors.textMuted },
   highlight: { fontSize: 13, fontWeight: '600', color: colors.primary },
   inList: { fontSize: 13, fontWeight: '600', color: colors.textMuted },
+  options: { marginTop: -spacing.sm, marginBottom: spacing.md },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 44,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  optionText: { flex: 1, fontSize: 15, color: colors.text },
+  price: { alignItems: 'flex-end', maxWidth: '35%' },
+  priceValue: { fontSize: 15, fontWeight: '700', color: colors.text },
+  totalRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md },
+  totalLabel: { fontSize: 16, fontWeight: '700', color: colors.text },
+  totalValue: { fontSize: 18, fontWeight: '700', color: colors.primary },
 }));

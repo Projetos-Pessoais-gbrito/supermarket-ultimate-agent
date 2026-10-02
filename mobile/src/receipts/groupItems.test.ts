@@ -22,7 +22,7 @@ describe('groupReceiptItems', () => {
     const groups = groupReceiptItems([item({ lineNumber: 1 }), item({ lineNumber: 2 })]);
 
     expect(groups).toHaveLength(1);
-    expect(groups[0]).toMatchObject({ count: 2, quantity: 2, totalPrice: 3.98 });
+    expect(groups[0]).toMatchObject({ count: 2, lineNumbers: [1, 2], quantity: 2, totalPrice: 3.98 });
   });
 
   it('keeps different prices of the same product apart', () => {

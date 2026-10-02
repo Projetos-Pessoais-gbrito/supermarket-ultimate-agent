@@ -81,6 +81,12 @@ function ReceiptContent({ receipt, alreadyImported }: { receipt: ReceiptDetails;
         <SummaryRow label="Tributos aproximados" value={formatCurrency(receipt.approximateTaxes)} />
       </View>
 
+      <Button
+        title="Montar lista com esta nota"
+        onPress={() =>
+          router.push({ pathname: '/list-from-receipt', params: { receiptId: String(receipt.id) } })
+        }
+      />
       <DeleteReceipt receiptId={receipt.id} />
     </ScrollView>
   );

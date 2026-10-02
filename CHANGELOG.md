@@ -3,6 +3,27 @@
 All notable changes to this project. Versions follow [SemVer](https://semver.org/);
 the format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [1.3.0] - 2026-10-02
+
+Plan the shopping trip: build the list from a receipt, reuse it every month and see what it will cost.
+
+### Added
+
+- **Prices on the list**: choose the market you will shop at and each item shows its price from
+  your latest receipt there (per kilo for weighed items), with the estimated total at the end.
+  Items never bought there say "Sem preço aqui".
+- **Build the list from a receipt**: pick a receipt, untick what you don't need, and the items come
+  in with the quantities you bought. Also on the receipt screen.
+- **Saved lists**: save the list ("Compra do mês") and reuse it next month without duplicates.
+  Saved lists are part of the data export.
+- **Product suggestions while typing** an item, from your own receipts.
+
+### Fixed
+
+- Items sold by weight show what was paid, with the price per kilo below, and repeated lines are
+  no longer counted twice.
+- The Android APK build declares the app platforms again.
+
 ## [1.2.0] - 2026-10-01
 
 Understand the numbers, update with one tap, and run everything on free plans.

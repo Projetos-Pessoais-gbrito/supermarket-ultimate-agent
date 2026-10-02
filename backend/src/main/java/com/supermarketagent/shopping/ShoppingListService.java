@@ -68,6 +68,67 @@ public class ShoppingListService {
                 ITEM, userId, name.strip(), quantity);
     }
 
+    /**
+     * Adds the chosen lines of one of the user's receipts, with the quantities bought; repeated lines of a
+     * product become one item. Lines without a catalog product come in as free text. Empty when the receipt
+     * does not exist or belongs to someone else.
+     */
+    public Optional<AddedItems> addFromReceipt(long userId, long receiptId, List<Integer> lineNumbers) {
+        Integer owned = jdbc.queryForObject("SELECT count(*) FROM receipts WHERE id = ? AND user_id = ?",
+                Integer.class, receiptId, userId);
+        if (owned == null || owned == 0) {
+            return Optional.empty();
+        }
+        List<NewItem> lines = jdbc.query("""
+                SELECT sp.product_id,
+                       COALESCE(p.display_name, p.normalized_name, sp.description) AS name,
+                       sum(i.quantity) AS quantity
+                FROM receipt_items i
+                JOIN store_products sp ON sp.id = i.store_product_id
+                LEFT JOIN products p ON p.id = sp.product_id
+                WHERE i.receipt_id = ? AND i.line_number = ANY (?)
+                GROUP BY sp.product_id, COALESCE(p.display_name, p.normalized_name, sp.description)
+                ORDER BY min(i.line_number)""",
+                (rs, row) -> new NewItem((Long) rs.getObject("product_id"), rs.getString("name"),
+                        rs.getBigDecimal("quantity")),
+                receiptId, lineNumbers.toArray(Integer[]::new));
+        return Optional.of(addAll(userId, lines));
+    }
+
+    /** Adds each item unless the same product (or free text) is already on the list to buy. */
+    AddedItems addAll(long userId, List<NewItem> items) {
+        int added = 0;
+        for (NewItem item : items) {
+            if (addIfAbsent(userId, item)) {
+                added++;
+            }
+        }
+        return new AddedItems(added, items.size() - added);
+    }
+
+    private boolean addIfAbsent(long userId, NewItem item) {
+        if (item.productId() != null) {
+            return jdbc.update("""
+                    INSERT INTO shopping_list_items (user_id, product_id, name, quantity) VALUES (?, ?, ?, ?)
+                    ON CONFLICT (user_id, product_id) WHERE product_id IS NOT NULL AND NOT checked DO NOTHING""",
+                    userId, item.productId(), item.name(), item.quantity()) > 0;
+        }
+        return jdbc.update("""
+                INSERT INTO shopping_list_items (user_id, name, quantity)
+                SELECT ?, ?, ?
+                WHERE NOT EXISTS (SELECT 1 FROM shopping_list_items
+                                  WHERE user_id = ? AND product_id IS NULL AND NOT checked AND lower(name) = lower(?))""",
+                userId, item.name(), item.quantity(), userId, item.name()) > 0;
+    }
+
+    /** An item to put on the list; {@code productId} null for free text. */
+    record NewItem(Long productId, String name, BigDecimal quantity) {
+    }
+
+    /** @param alreadyInList items skipped because they were already on the list to buy */
+    public record AddedItems(int added, int alreadyInList) {
+    }
+
     /** Empty when the item does not exist or belongs to someone else. */
     public Optional<ShoppingListItem> setChecked(long userId, long itemId, boolean checked) {
         if (!checked) {
