@@ -1,5 +1,5 @@
-import type { PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../api/shopping';
-import { formatCurrency, formatPercent } from '../format';
+import type { AddedItems, ListPrice, PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../api/shopping';
+import { formatCurrency, formatDate, formatPercent } from '../format';
 
 /** 0 → "hoje", 1 → "ontem", 12 → "há 12 dias" */
 export function formatDaysAgo(days: number): string {
@@ -50,4 +50,55 @@ export function sortListItems(items: ShoppingListItem[]): ShoppingListItem[] {
 /** Optimistic toggle used while the request is in flight. */
 export function withChecked(items: ShoppingListItem[], id: number, checked: boolean): ShoppingListItem[] {
   return sortListItems(items.map(item => (item.id === id ? { ...item, checked } : item)));
+}
+
+/** What a list item costs at the chosen market: unit price × quantity (1 when none was given). */
+export type ItemPrice = { unitPrice: number; unit: string; total: number };
+
+export function itemPrice(item: ShoppingListItem, prices: ListPrice[]): ItemPrice | null {
+  const price = item.productId === null ? undefined : prices.find(p => p.productId === item.productId);
+  if (!price) {
+    return null;
+  }
+  const total = Math.round(price.unitPrice * (item.quantity ?? 1) * 100) / 100;
+  return { unitPrice: price.unitPrice, unit: price.unit, total };
+}
+
+/** Estimated cost of the whole list at the market; items without a price there are counted apart. */
+export function listEstimate(items: ShoppingListItem[], prices: ListPrice[]): { total: number; unpriced: number } {
+  let total = 0;
+  let unpriced = 0;
+  for (const item of items) {
+    const price = itemPrice(item, prices);
+    if (price) {
+      total += price.total;
+    } else {
+      unpriced++;
+    }
+  }
+  return { total: Math.round(total * 100) / 100, unpriced };
+}
+
+/** 5.98 "KG" → "R$ 5,98/kg" */
+export function formatUnitPrice(unitPrice: number, unit: string): string {
+  return `${formatCurrency(unitPrice)}/${unit.toLowerCase()}`;
+}
+
+/** 1 → "1 item sem preço nesse mercado" */
+export function unpricedNote(unpriced: number): string {
+  return unpriced === 1 ? '1 item sem preço nesse mercado' : `${unpriced} itens sem preço nesse mercado`;
+}
+
+/** "3 itens adicionados · 1 já estava na lista" */
+export function addedItemsMessage({ added, alreadyInList }: AddedItems): string {
+  const addedText = added === 1 ? '1 item adicionado' : `${added} itens adicionados`;
+  if (alreadyInList === 0) {
+    return addedText;
+  }
+  return `${addedText} · ${alreadyInList === 1 ? '1 já estava' : `${alreadyInList} já estavam`} na lista`;
+}
+
+/** "12 itens · salva em 01/10/2026" */
+export function savedListSummary(itemCount: number, updatedAt: string): string {
+  return `${itemCount === 1 ? '1 item' : `${itemCount} itens`} · salva em ${formatDate(updatedAt)}`;
 }
