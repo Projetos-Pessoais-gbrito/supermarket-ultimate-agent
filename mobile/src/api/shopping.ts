@@ -35,6 +35,22 @@ export type ShoppingListItem = {
   checked: boolean;
 };
 
+/** A product the user bought, offered while they type an item. */
+export type ProductOption = { productId: number; name: string };
+
+/** A market (chain) the user has receipts from. */
+export type Market = { name: string; lastPurchase: string };
+
+/** Unit price of a listed product on the user's latest receipt from the market. */
+export type ListPrice = { productId: number; unitPrice: number; unit: string; issuedAt: string };
+
+export type ListPrices = { market: string; items: ListPrice[] };
+
+/** alreadyInList: items skipped because they were already on the list to buy */
+export type AddedItems = { added: number; alreadyInList: number };
+
+export type SavedShoppingList = { id: number; name: string; itemCount: number; updatedAt: string };
+
 export type NewShoppingListItem = { productId: number; quantity?: number } | { name: string; quantity?: number };
 
 export const shoppingApi = {
@@ -48,4 +64,22 @@ export const shoppingApi = {
     apiRequest<ShoppingListItem>(`/api/shopping-list/${id}`, { method: 'PATCH', body: { checked }, token }),
   remove: (token: string, id: number) => apiRequest<void>(`/api/shopping-list/${id}`, { method: 'DELETE', token }),
   removeChecked: (token: string) => apiRequest<void>('/api/shopping-list/checked', { method: 'DELETE', token }),
+  addFromReceipt: (token: string, receiptId: number, lineNumbers: number[]) =>
+    apiRequest<AddedItems>('/api/shopping-list/from-receipt', {
+      method: 'POST',
+      body: { receiptId, lineNumbers },
+      token,
+    }),
+  searchProducts: (token: string, text: string) =>
+    apiRequest<ProductOption[]>(`/api/shopping-list/products?q=${encodeURIComponent(text)}`, { token }),
+  markets: (token: string) => apiRequest<Market[]>('/api/shopping-list/markets', { token }),
+  prices: (token: string, market: string) =>
+    apiRequest<ListPrices>(`/api/shopping-list/prices?market=${encodeURIComponent(market)}`, { token }),
+  savedLists: (token: string) => apiRequest<SavedShoppingList[]>('/api/shopping-list/saved', { token }),
+  saveList: (token: string, name: string) =>
+    apiRequest<SavedShoppingList>('/api/shopping-list/saved', { method: 'POST', body: { name }, token }),
+  applySavedList: (token: string, id: number) =>
+    apiRequest<AddedItems>(`/api/shopping-list/saved/${id}/apply`, { method: 'POST', token }),
+  removeSavedList: (token: string, id: number) =>
+    apiRequest<void>(`/api/shopping-list/saved/${id}`, { method: 'DELETE', token }),
 };
