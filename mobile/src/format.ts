@@ -13,6 +13,19 @@ export function formatCurrency(value: number): string {
   return `${value < 0 ? '-' : ''}R$ ${groupThousands(integerPart)},${decimals}`;
 }
 
+/** Units of weight or volume: the price on the receipt is per kilo/litre, not what was paid. */
+const MEASURE_UNITS = new Set(['KG', 'G', 'L', 'LT', 'ML']);
+
+/** "KG" → true (sold by weight), "UN"/"CX" → false */
+export function isSoldByMeasure(unit: string): boolean {
+  return MEASURE_UNITS.has(unit.toUpperCase());
+}
+
+/** 21.9 "KG" → "R$ 21,90/kg"; 7.59 "UN" → "R$ 7,59" */
+export function formatUnitPrice(value: number, unit: string): string {
+  return isSoldByMeasure(unit) ? `${formatCurrency(value)}/${unit.toLowerCase()}` : formatCurrency(value);
+}
+
 /** 0.136 "KG" → "0,136 kg"; 2 "UN" → "2 un" */
 export function formatQuantity(quantity: number, unit: string): string {
   const text = Number.isInteger(quantity) ? String(quantity) : String(quantity).replace('.', ',');

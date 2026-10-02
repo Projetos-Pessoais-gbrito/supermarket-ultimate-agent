@@ -1,5 +1,7 @@
 import {
   formatCurrency,
+  formatUnitPrice,
+  isSoldByMeasure,
   formatDate,
   formatDateTime,
   formatMonthLong,
@@ -17,6 +19,19 @@ describe('formatCurrency', () => {
     [-3.5, '-R$ 3,50'],
   ])('%p → %p', (value, expected) => {
     expect(formatCurrency(value)).toBe(expected);
+  });
+});
+
+describe('formatUnitPrice', () => {
+  it('says the price is per kilo for items sold by weight', () => {
+    expect(formatUnitPrice(21.9, 'KG')).toBe('R$ 21,90/kg');
+    expect(isSoldByMeasure('kg')).toBe(true);
+  });
+
+  it('shows the plain price for items sold by the unit or package', () => {
+    expect(formatUnitPrice(7.59, 'UN')).toBe('R$ 7,59');
+    expect(formatUnitPrice(12, 'CX')).toBe('R$ 12,00');
+    expect(isSoldByMeasure('UN')).toBe(false);
   });
 });
 
