@@ -4,6 +4,8 @@ export type GroupedItem = {
   key: string;
   /** How many receipt lines were merged */
   count: number;
+  /** Receipt lines merged into this group */
+  lineNumbers: number[];
   item: ReceiptItem;
   quantity: number;
   totalPrice: number;
@@ -20,10 +22,11 @@ export function groupReceiptItems(items: ReceiptItem[]): GroupedItem[] {
     const existing = groups.get(key);
     if (existing) {
       existing.count += 1;
+      existing.lineNumbers.push(item.lineNumber);
       existing.quantity = round(existing.quantity + item.quantity, 4);
       existing.totalPrice = round(existing.totalPrice + item.totalPrice, 2);
     } else {
-      groups.set(key, { key, count: 1, item, quantity: item.quantity, totalPrice: item.totalPrice });
+      groups.set(key, { key, count: 1, lineNumbers: [item.lineNumber], item, quantity: item.quantity, totalPrice: item.totalPrice });
     }
   }
   return [...groups.values()];
