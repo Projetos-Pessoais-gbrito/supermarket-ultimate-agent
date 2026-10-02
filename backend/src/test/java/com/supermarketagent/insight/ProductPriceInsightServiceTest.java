@@ -86,6 +86,18 @@ class ProductPriceInsightServiceTest {
     }
 
     @Test
+    void historyIncludesHowMuchWasBoughtAndPaid() {
+        // Sold by weight: 148 g at R$ 21,90/kg
+        data.receipt(ana, assai, "2026-09-10T15:00:00Z", riceAtAssai, "0.148", "21.90");
+
+        PricePoint point = service.history(ana, rice).orElseThrow().prices().getFirst();
+
+        assertThat(point.unitPrice()).isEqualByComparingTo("21.90");
+        assertThat(point.quantity()).isEqualByComparingTo("0.148");
+        assertThat(point.totalPrice()).isEqualByComparingTo("3.24");
+    }
+
+    @Test
     void doesNotRevealOtherUsersPurchases() {
         long bia = data.user("bia@example.com");
         data.receipt(bia, assai, "2026-09-10T15:00:00Z", riceAtAssai, "1", "25.90");

@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 
 import { errorMessage } from '../../../api/messages';
 import type { ReceiptDetails } from '../../../api/types';
-import { formatCurrency, formatDateTime, formatQuantity } from '../../../format';
+import { formatCurrency, formatDateTime, formatQuantity, formatUnitPrice } from '../../../format';
 import { groupReceiptItems, type GroupedItem } from '../../../receipts/groupItems';
 import { useDeleteReceipt, useReceipt } from '../../../receipts/queries';
 import { Button, ErrorBanner } from '../../../ui/components';
@@ -116,10 +116,10 @@ function DeleteReceipt({ receiptId }: { receiptId: number }) {
 
 function ItemRow({ group, onPress }: { group: GroupedItem; onPress?: () => void }) {
   const styles = useStyles();
-  const { item, count } = group;
+  const { item } = group;
+  // Repeated lines are already summed into the quantity ("2 un", not "2× 2 un")
   const details = [
-    count > 1 ? `${count}× ` : '',
-    `${formatQuantity(group.quantity, item.unit)} × ${formatCurrency(item.unitPrice)}`,
+    `${formatQuantity(group.quantity, item.unit)} × ${formatUnitPrice(item.unitPrice, item.unit)}`,
     item.categoryLabel ? ` · ${item.categoryLabel}` : '',
   ].join('');
   return (

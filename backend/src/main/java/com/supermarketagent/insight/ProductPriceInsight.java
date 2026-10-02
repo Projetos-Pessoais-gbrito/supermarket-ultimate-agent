@@ -26,7 +26,13 @@ public final class ProductPriceInsight {
             Instant lastBoughtAt) {
     }
 
-    public record PricePoint(Instant issuedAt, long storeId, String storeName, BigDecimal unitPrice, String unit) {
+    /**
+     * @param unitPrice  price per unit or per kilo: the comparable price
+     * @param quantity   how much was bought (0.148 for 148 g)
+     * @param totalPrice what was actually paid on that line
+     */
+    public record PricePoint(Instant issuedAt, long storeId, String storeName, BigDecimal unitPrice, String unit,
+                             BigDecimal quantity, BigDecimal totalPrice) {
     }
 
     public record PriceHistory(long productId, String name, List<PricePoint> prices) {

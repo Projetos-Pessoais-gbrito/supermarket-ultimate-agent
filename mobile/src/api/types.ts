@@ -47,7 +47,18 @@ export type ReceiptItem = {
   categoryLabel: string | null;
 };
 
-export type PricePoint = { issuedAt: string; storeId: number; storeName: string; unitPrice: number; unit: string };
+export type PricePoint = {
+  issuedAt: string;
+  storeId: number;
+  storeName: string;
+  /** Per unit, or per kilo for items sold by weight: the comparable price */
+  unitPrice: number;
+  unit: string;
+  /** How much was bought (0.148 = 148 g); missing from servers before 1.2.1 */
+  quantity?: number;
+  /** What was actually paid on that line; missing from servers before 1.2.1 */
+  totalPrice?: number;
+};
 
 export type PriceHistory = { productId: number; name: string; prices: PricePoint[] };
 
