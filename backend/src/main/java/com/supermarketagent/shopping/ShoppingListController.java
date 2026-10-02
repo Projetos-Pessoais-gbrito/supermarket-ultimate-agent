@@ -1,10 +1,17 @@
 package com.supermarketagent.shopping;
 
+import com.supermarketagent.shopping.ListPlanningService.ListPrices;
+import com.supermarketagent.shopping.ListPlanningService.Market;
+import com.supermarketagent.shopping.ListPlanningService.ProductOption;
+import com.supermarketagent.shopping.ShoppingListService.AddedItems;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.util.List;
@@ -19,6 +26,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -29,14 +37,42 @@ import org.springframework.web.server.ResponseStatusException;
 class ShoppingListController {
 
     private final ShoppingListService service;
+    private final ListPlanningService planning;
 
-    ShoppingListController(ShoppingListService service) {
+    ShoppingListController(ShoppingListService service, ListPlanningService planning) {
         this.service = service;
+        this.planning = planning;
     }
 
     @GetMapping
     List<ShoppingListItem> list(@AuthenticationPrincipal Jwt jwt) {
         return service.list(userId(jwt));
+    }
+
+    /** Chosen lines of one of the user's receipts, with the quantities bought. */
+    @PostMapping("/from-receipt")
+    AddedItems addFromReceipt(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody FromReceiptRequest request) {
+        return service.addFromReceipt(userId(jwt), request.receiptId(), request.lineNumbers())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Receipt not found"));
+    }
+
+    /** Products the user bought whose name matches what they are typing. */
+    @GetMapping("/products")
+    List<ProductOption> searchProducts(@AuthenticationPrincipal Jwt jwt,
+                                       @RequestParam("q") @Size(max = 100) String text) {
+        return planning.searchProducts(userId(jwt), text);
+    }
+
+    /** Markets the user can plan for: the ones they have receipts from. */
+    @GetMapping("/markets")
+    List<Market> markets(@AuthenticationPrincipal Jwt jwt) {
+        return planning.markets(userId(jwt));
+    }
+
+    /** Prices of the products on the list, from the user's latest receipt at {@code market}. */
+    @GetMapping("/prices")
+    ListPrices prices(@AuthenticationPrincipal Jwt jwt, @RequestParam @NotBlank @Size(max = 200) String market) {
+        return planning.prices(userId(jwt), market);
     }
 
     /** A product from the user's history ({@code productId}) or a free-text item ({@code name}). */
@@ -82,6 +118,11 @@ class ShoppingListController {
     }
 
     record CheckRequest(@NotNull Boolean checked) {
+    }
+
+    record FromReceiptRequest(
+            @NotNull Long receiptId,
+            @NotEmpty @Size(max = 500) List<@NotNull @Positive Integer> lineNumbers) {
     }
 
     private static ResponseStatusException notFound() {

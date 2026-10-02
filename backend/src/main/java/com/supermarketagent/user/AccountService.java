@@ -45,6 +45,17 @@ public class AccountService {
                 (rs, row) -> new AccountExport.ShoppingListEntry(rs.getString("name"), rs.getBigDecimal("quantity"),
                         rs.getBoolean("checked"), rs.getTimestamp("created_at").toInstant()),
                 userId);
+        var savedLists = jdbc.query("""
+                SELECT id, name, updated_at FROM saved_shopping_lists
+                WHERE user_id = ? ORDER BY updated_at, id""",
+                (rs, row) -> new AccountExport.SavedShoppingList(rs.getString("name"),
+                        rs.getTimestamp("updated_at").toInstant(), jdbc.query("""
+                                SELECT name, quantity FROM saved_shopping_list_items
+                                WHERE list_id = ? ORDER BY position""",
+                                (items, line) -> new AccountExport.SavedShoppingListItem(items.getString("name"),
+                                        items.getBigDecimal("quantity")),
+                                rs.getLong("id"))),
+                userId);
         var budgets = jdbc.query("""
                 SELECT category, monthly_limit, updated_at FROM budgets
                 WHERE user_id = ? ORDER BY category NULLS FIRST""",
@@ -52,7 +63,7 @@ public class AccountService {
                         rs.getTimestamp("updated_at").toInstant()),
                 userId);
         return new AccountExport(clock.instant(), new AccountExport.Account(userId, user.getEmail(), createdAt),
-                details, shoppingList, budgets);
+                details, shoppingList, savedLists, budgets);
     }
 
     /**

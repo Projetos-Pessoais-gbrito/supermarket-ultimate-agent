@@ -1,6 +1,7 @@
 package com.supermarketagent.shopping;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,19 +45,50 @@ final class ShoppingTestData {
                 Long.class, storeId, "C" + sequence.incrementAndGet(), "ITEM " + sequence.get(), productId);
     }
 
+    /** Store of a chain: SEFAZ shows the legal name, the app the brand. */
+    long store(String legalName, String brand) {
+        long id = store(legalName);
+        jdbc.update("UPDATE stores SET display_name = ? WHERE id = ?", brand, id);
+        return id;
+    }
+
     /** Receipt with a single item bought at noon (São Paulo) of {@code day}. */
     void buy(long userId, long storeId, String day, long storeProductId, String quantity, String unitPrice) {
-        BigDecimal total = new BigDecimal(quantity).multiply(new BigDecimal(unitPrice));
+        receipt(userId, storeId, day, new Line(storeProductId, quantity, unitPrice));
+    }
+
+    /** Receipt bought at noon (São Paulo) of {@code day}; lines are numbered from 1 in order. */
+    long receipt(long userId, long storeId, String day, Line... lines) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Line line : lines) {
+            total = total.add(line.total());
+        }
         String key = "3526" + String.format("%040d", sequence.incrementAndGet());
         long receiptId = jdbc.queryForObject("""
                 INSERT INTO receipts (user_id, store_id, access_key, number, series, issued_at, total_amount,
                                       source_url, raw_html)
                 VALUES (?, ?, ?, 1, 1, ?, ?, 'https://example', '<html/>') RETURNING id""",
                 Long.class, userId, storeId, key, Timestamp.from(Instant.parse(day + "T15:00:00Z")), total);
-        jdbc.update("""
-                INSERT INTO receipt_items (receipt_id, store_product_id, line_number, quantity, unit, unit_price,
-                                           total_price)
-                VALUES (?, ?, 1, ?, 'UN', ?, ?)""",
-                receiptId, storeProductId, new BigDecimal(quantity), new BigDecimal(unitPrice), total);
+        for (int i = 0; i < lines.length; i++) {
+            Line line = lines[i];
+            jdbc.update("""
+                    INSERT INTO receipt_items (receipt_id, store_product_id, line_number, quantity, unit, unit_price,
+                                               total_price)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    receiptId, line.storeProductId(), i + 1, new BigDecimal(line.quantity()), line.unit(),
+                    new BigDecimal(line.unitPrice()), line.total());
+        }
+        return receiptId;
+    }
+
+    record Line(long storeProductId, String quantity, String unitPrice, String unit) {
+
+        Line(long storeProductId, String quantity, String unitPrice) {
+            this(storeProductId, quantity, unitPrice, "UN");
+        }
+
+        BigDecimal total() {
+            return new BigDecimal(quantity).multiply(new BigDecimal(unitPrice)).setScale(2, RoundingMode.HALF_UP);
+        }
     }
 }

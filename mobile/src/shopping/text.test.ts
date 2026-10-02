@@ -1,12 +1,18 @@
-import type { PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../api/shopping';
+import type { ListPrice, PriceAlert, ShoppingListItem, ShoppingSuggestion } from '../api/shopping';
 import {
+  addedItemsMessage,
   alertHeadline,
   formatDaysAgo,
   formatListQuantity,
+  formatUnitPrice,
   formatUsualQuantity,
+  itemPrice,
+  listEstimate,
+  savedListSummary,
   sortListItems,
   suggestionBestPrice,
   suggestionRhythm,
+  unpricedNote,
   withChecked,
 } from './text';
 
@@ -98,5 +104,57 @@ describe('list ordering', () => {
       [2, false],
       [1, true],
     ]);
+  });
+});
+
+describe('list prices at a market', () => {
+  const item = (id: number, productId: number | null, quantity: number | null): ShoppingListItem => ({
+    id,
+    productId,
+    name: `Item ${id}`,
+    quantity,
+    checked: false,
+  });
+  const prices: ListPrice[] = [
+    { productId: 10, unitPrice: 4.99, unit: 'UN', issuedAt: '2026-09-01T15:00:00Z' },
+    { productId: 20, unitPrice: 5.98, unit: 'KG', issuedAt: '2026-09-01T15:00:00Z' },
+  ];
+
+  it('multiplies the unit price by the quantity, 1 when none was given', () => {
+    expect(itemPrice(item(1, 10, 12), prices)).toEqual({ unitPrice: 4.99, unit: 'UN', total: 59.88 });
+    expect(itemPrice(item(2, 10, null), prices)?.total).toBe(4.99);
+    expect(itemPrice(item(3, 20, 1.25), prices)?.total).toBe(7.48);
+  });
+
+  it('has no price for free text or products never bought there', () => {
+    expect(itemPrice(item(1, null, 1), prices)).toBeNull();
+    expect(itemPrice(item(2, 30, 1), prices)).toBeNull();
+  });
+
+  it('adds up the priced items and counts the others', () => {
+    expect(listEstimate([item(1, 10, 2), item(2, 20, 1.25), item(3, null, 1), item(4, 30, 1)], prices)).toEqual({
+      total: 17.46,
+      unpriced: 2,
+    });
+    expect(listEstimate([], prices)).toEqual({ total: 0, unpriced: 0 });
+  });
+
+  it('formats unit prices and notes', () => {
+    expect(formatUnitPrice(5.98, 'KG')).toBe('R$ 5,98/kg');
+    expect(unpricedNote(1)).toBe('1 item sem preço nesse mercado');
+    expect(unpricedNote(3)).toBe('3 itens sem preço nesse mercado');
+  });
+});
+
+describe('list messages', () => {
+  it('says how many items were added', () => {
+    expect(addedItemsMessage({ added: 1, alreadyInList: 0 })).toBe('1 item adicionado');
+    expect(addedItemsMessage({ added: 3, alreadyInList: 1 })).toBe('3 itens adicionados · 1 já estava na lista');
+    expect(addedItemsMessage({ added: 0, alreadyInList: 2 })).toBe('0 itens adicionados · 2 já estavam na lista');
+  });
+
+  it('summarizes a saved list', () => {
+    expect(savedListSummary(12, '2026-10-01T15:00:00Z')).toBe('12 itens · salva em 01/10/2026');
+    expect(savedListSummary(1, '2026-10-01T15:00:00Z')).toBe('1 item · salva em 01/10/2026');
   });
 });
